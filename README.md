@@ -58,6 +58,18 @@ terminal-pet send preexec make
 terminal-pet send precmd 1      # exit status
 ```
 
+## Bundled pets
+
+| name    | who |
+|---------|-----|
+| `blob`  | a round blue blob (default) |
+| `cat`   | an orange tabby that wags its tail |
+| `ghost` | a floating ghost that bobs up and down |
+| `robot` | a boxy robot whose screen face and antenna light change with its mood |
+| `chick` | a yellow chick that flaps its wings when a command succeeds |
+
+Pick one with `"pet": "cat"` in the config or `terminal-pet --pet cat`. `terminal-pet pets` lists everything installed.
+
 ## Configuration
 
 `~/.config/terminal-pet/config.json` (created by `make install`, every key optional):
@@ -98,7 +110,7 @@ A pet is a folder with one animated image per state. Unknown states fall back to
 
 GIF and APNG are both supported and per-frame delays are respected. Pixel art is drawn with nearest-neighbour scaling, so a 24x24 sprite at `scale: 3` is crisp. `terminal-pet pets` lists everything it can find. Pets are searched in `$TERMINAL_PET_PETS_DIR`, `~/.config/terminal-pet/pets`, then the installed share directory.
 
-The bundled **blob** is generated from [scripts/gen-default-pet.swift](scripts/gen-default-pet.swift) (`make pets`) if you want a starting point for drawing your own procedurally.
+The bundled pets are all generated from [scripts/gen-pets.swift](scripts/gen-pets.swift): each one is a small ASCII-art body plus shared helpers for eyes, mouths, tears and Zs. `make pets` regenerates them and writes a contact sheet to `.build/pets-sheet.png`. Copy one of the `func cat()`-style definitions to make a new character.
 
 ## How it works
 
@@ -109,7 +121,6 @@ The bundled **blob** is generated from [scripts/gen-default-pet.swift](scripts/g
 
 ## Roadmap
 
-- [ ] More bundled pets
 - [ ] Sound / notification on long command completion
 - [ ] tmux awareness (which pane is active)
 - [ ] Linux (X11/Wayland overlay) and Windows
