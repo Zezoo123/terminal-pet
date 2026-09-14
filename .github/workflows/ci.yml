@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Swift version
+        run: swift --version
+      - name: Build
+        run: swift build -c release
+      - name: Smoke test CLI
+        run: |
+          .build/release/terminal-pet --version
+          TERMINAL_PET_PETS_DIR=$PWD/pets .build/release/terminal-pet pets
+      - name: Pets regenerate cleanly
+        run: |
+          mkdir -p .build
+          swiftc -O -o .build/gen-pets scripts/gen-pets.swift
+          .build/gen-pets pets
+          git diff --exit-code -- pets
+      - name: zsh plugin parses
+        run: zsh -n shell/terminal-pet.plugin.zsh
