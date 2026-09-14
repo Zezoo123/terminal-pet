@@ -23,7 +23,8 @@ final class EventServer {
 
     private let path: String
     private let handler: (String) -> String
-    private let queue = DispatchQueue(label: "terminal-pet.events")
+    private let queue = DispatchQueue(label: "terminal-pet.accept")
+    private let clients = DispatchQueue(label: "terminal-pet.clients", attributes: .concurrent)
     private var fd: Int32 = -1
     private var source: DispatchSourceRead?
 
@@ -45,10 +46,16 @@ final class EventServer {
         }
         guard bound == 0 else { throw Error.syscall("bind", errno) }
         chmod(path, 0o600)
-        guard listen(fd, 16) == 0 else { throw Error.syscall("listen", errno) }
+        // Hooks from busy shells can arrive in bursts; a deep backlog and a non-blocking
+        // accept loop keep them from being refused while the main thread is busy.
+        guard listen(fd, Int32(SOMAXCONN)) == 0 else { throw Error.syscall("listen", errno) }
+        _ = fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK)
 
         let src = DispatchSource.makeReadSource(fileDescriptor: fd, queue: queue)
-        src.setEventHandler { [weak self] in self?.acceptClient() }
+        src.setEventHandler { [weak self] in
+            guard let self else { return }
+            while self.fd >= 0, self.acceptClient() {}
+        }
         src.resume()
         source = src
     }
@@ -60,12 +67,20 @@ final class EventServer {
         unlink(path)
     }
 
-    private func acceptClient() {
+    /// Accepts one pending connection and services it off the accept queue; false when none is waiting.
+    private func acceptClient() -> Bool {
         let client = accept(fd, nil, nil)
-        guard client >= 0 else { return }
-        defer { close(client) }
+        guard client >= 0 else { return false }
+        _ = fcntl(client, F_SETFL, fcntl(client, F_GETFL) & ~O_NONBLOCK)
         Self.configure(client, timeoutSeconds: 2)
+        clients.async { [weak self] in
+            self?.serve(client)
+            close(client)
+        }
+        return true
+    }
 
+    private func serve(_ client: Int32) {
         var pending: [UInt8] = []
         var buf = [UInt8](repeating: 0, count: 4096)
         while pending.count < 64 * 1024 {

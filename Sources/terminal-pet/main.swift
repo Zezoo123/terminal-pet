@@ -33,6 +33,9 @@ func usage() -> String {
 }
 
 
+// Clients (the zsh hooks) often close before reading our reply. Writing to them must not kill us.
+signal(SIGPIPE, SIG_IGN)
+
 var args = Array(CommandLine.arguments.dropFirst())
 var config = Config.load()
 
