@@ -4,7 +4,7 @@ SHARE   = $(PREFIX)/share/terminal-pet
 CONFIG  = $(HOME)/.config/terminal-pet
 AGENT   = $(HOME)/Library/LaunchAgents/com.terminal-pet.plist
 
-.PHONY: build run release install uninstall pets demo launchd unlaunchd clean
+.PHONY: build run release install uninstall pets demo test launchd unlaunchd clean
 
 build:
 	swift build
@@ -21,13 +21,13 @@ install: release
 	install -d "$(BIN)" "$(SHARE)" "$(CONFIG)"
 	install -m 755 .build/release/terminal-pet "$(BIN)/terminal-pet"
 	rm -rf "$(SHARE)/pets" && cp -R pets "$(SHARE)/pets"
-	install -m 644 shell/terminal-pet.plugin.zsh "$(SHARE)/terminal-pet.plugin.zsh"
+	install -m 644 shell/terminal-pet.plugin.zsh shell/terminal-pet.plugin.bash shell/terminal-pet.fish "$(SHARE)/"
 	@test -f "$(CONFIG)/config.json" || cp config.example.json "$(CONFIG)/config.json"
 	@echo
 	@echo "installed to $(BIN)/terminal-pet"
-	@echo "add to ~/.zshrc:   source $(SHARE)/terminal-pet.plugin.zsh"
-	@echo "config lives at:   $(CONFIG)/config.json"
-	@echo "start it with:     terminal-pet          (or: make launchd to start at login)"
+	@echo "hook it into your shell:   $(BIN)/terminal-pet setup      (zsh, bash or fish; add --print to just see the lines)"
+	@echo "config lives at:           $(CONFIG)/config.json"
+	@echo "then start it with:        terminal-pet               (or: make launchd to start at login)"
 
 uninstall: unlaunchd
 	rm -f "$(BIN)/terminal-pet"
@@ -39,6 +39,10 @@ pets:
 	mkdir -p .build
 	swiftc -O -o .build/gen-pets scripts/gen-pets.swift
 	.build/gen-pets pets --sheet .build/pets-sheet.png --showcase docs/showcase.gif
+
+## Check the shell plugins against a mock socket (no GUI needed).
+test: build
+	scripts/test-shells.sh .build/debug/terminal-pet
 
 ## Record docs/demo.gif from a real Terminal window (asks for Screen Recording permission once).
 demo:

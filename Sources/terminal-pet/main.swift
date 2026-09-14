@@ -1,6 +1,6 @@
 import AppKit
 
-let version = "0.1.0"
+let version = "0.2.0"
 
 func usage() -> String {
     """
@@ -9,6 +9,7 @@ func usage() -> String {
     usage:
       terminal-pet [start]           start the pet in the background (detached from this shell)
       terminal-pet stop              stop it
+      terminal-pet setup             hook it into your shell (zsh, bash or fish) and PATH
       terminal-pet --foreground      run attached to this shell (Ctrl-C to quit); used by launchd
       terminal-pet --pet NAME|DIR|FILE.gif    switch pet (live if one is running, else start with it)
       terminal-pet --scale N         change size
@@ -73,6 +74,8 @@ if let first = args.first {
             print(p[0].padding(toLength: width, withPad: " ", startingAt: 0) + "  " + p[1])
         }
         exit(0)
+    case "setup":
+        exit(ShellSetup.run(args: Array(args.dropFirst())))
     case "stop":
         if let reply = EventServer.send("quit", path: EventServer.defaultPath) { print(reply); exit(0) }
         print("not running")
