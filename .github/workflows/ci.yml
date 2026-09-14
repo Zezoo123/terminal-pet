@@ -24,5 +24,11 @@ jobs:
           swiftc -O -o .build/gen-pets scripts/gen-pets.swift
           .build/gen-pets pets
           git diff --exit-code -- pets
-      - name: zsh plugin parses
-        run: zsh -n shell/terminal-pet.plugin.zsh
+      - name: Shell plugins parse
+        run: |
+          zsh -n shell/terminal-pet.plugin.zsh
+          bash -n shell/terminal-pet.plugin.bash
+      - name: Install fish
+        run: brew install fish
+      - name: Shell plugins send the right events
+        run: scripts/test-shells.sh .build/release/terminal-pet
