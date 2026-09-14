@@ -1,10 +1,19 @@
 # terminal-pet
 
+[![CI](https://github.com/Zezoo123/terminal-pet/actions/workflows/ci.yml/badge.svg)](https://github.com/Zezoo123/terminal-pet/actions/workflows/ci.yml)
+[![macOS](https://img.shields.io/badge/platform-macOS%2013%2B-blue)](#install)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
 A little animated companion that lives on top of your terminal window and reacts to what you do in the shell.
+
+<p align="center">
+  <img src="docs/showcase.gif" alt="The bundled pets (blob, cat, ghost, robot, chick) cycling through idle, working, happy, sad, sleeping and eating" width="520">
+</p>
 
 - Sits in the corner of whichever terminal window is in front (or perched on its title bar, if you prefer), and follows it when you move or resize it.
 - Hides when the terminal isn't the active app, so it never gets in the way.
-- Watches your zsh session: **working** while a command runs, **happy** when it succeeds, **sad** when it fails, **sleeping** when you've been away for a while. Click it to make it happy.
+- Watches your zsh session: **working** while a command runs, **happy** when it succeeds, **sad** when it fails, **sleeping** when you've been away for a while.
+- Is a little Tamagotchi: it gets **hungry** over the day and asks for food, gains **xp** and **levels** from the commands you run, keeps **streaks** of successful commands, and talks in a **speech bubble**. Click it or `pet feed` it.
 - Fully customisable: drop in your own animated GIFs (or APNGs) for each state, or point it at a single GIF and it'll just loop that.
 
 macOS only for now (native Swift/AppKit, no dependencies). Linux and Windows are on the roadmap.
@@ -48,14 +57,29 @@ It also gives you a `pet` command:
 
 ```zsh
 pet            # poke it
+pet feed       # feed it
+pet stats      # level, xp, hunger, streaks, age
+pet say hi     # speech bubble (try it at the end of a long script)
+pet name Bob   # give it a name
 pet ghost      # switch to another pet (any name from `pet list`, a folder, or a .gif)
-pet sad        # force a state: idle | working | happy | sad | sleeping
+pet sad        # force a state: idle | working | happy | sad | sleeping | eating | hungry
 pet scale 4    # resize
 pet anchor inside-bottom-left
 pet list       # what's installed
 pet status
 pet quit
 ```
+
+## Caring for it
+
+| | |
+|---|---|
+| **Hunger** | Full after feeding, empty about 8 hours later. Below 25% it looks hungry and asks for food every few minutes. `pet feed` (+5 xp). |
+| **XP and levels** | +1 xp per successful command, +5 per meal. Level 2 at 20 xp, 3 at 80, 4 at 180, 5 at 320, and so on. It announces level-ups. |
+| **Streaks** | Consecutive successful commands. It celebrates 5, 10, 25, 50, 100... and mourns a lost streak of 5 or more. |
+| **Speech** | Reacts with short bubbles. `pet say "tests passed"` from any script, or `terminal-pet say ...` from bash, Makefiles, CI. |
+
+Everything is kept in `~/.config/terminal-pet/stats.json`. Delete it to start over.
 
 ## Changing things on the fly
 
@@ -109,7 +133,7 @@ Flags override the file for one run: `terminal-pet --pet ~/Downloads/cat.gif --s
 
 ## Making your own pet
 
-A pet is a folder with one animated image per state. Unknown states fall back to `idle`, so a single `idle.gif` is enough.
+A pet is a folder with one animated image per state: `idle`, `working`, `happy`, `sad`, `sleeping`, `eating`, `hungry`. Missing states fall back sensibly (`eating` to `happy`, everything else to `idle`), so a single `idle.gif` is enough.
 
 ```
 ~/.config/terminal-pet/pets/cat/
@@ -118,7 +142,8 @@ A pet is a folder with one animated image per state. Unknown states fall back to
 ├── working.gif
 ├── happy.gif
 ├── sad.gif
-└── sleeping.gif
+├── sleeping.gif
+└── eating.gif
 ```
 
 `pet.json` lets you name it and use different file names:

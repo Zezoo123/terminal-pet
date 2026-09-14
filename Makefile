@@ -38,7 +38,7 @@ uninstall: unlaunchd
 pets:
 	mkdir -p .build
 	swiftc -O -o .build/gen-pets scripts/gen-pets.swift
-	.build/gen-pets pets --sheet .build/pets-sheet.png
+	.build/gen-pets pets --sheet .build/pets-sheet.png --showcase docs/showcase.gif
 
 ## Start the pet at login via launchd.
 launchd:
