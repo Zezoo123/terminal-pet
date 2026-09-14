@@ -7,6 +7,10 @@
 A little animated companion that lives on top of your terminal window and reacts to what you do in the shell.
 
 <p align="center">
+  <img src="docs/demo.gif" alt="terminal-pet reacting to commands in Terminal.app: happy after a success, sad after a failure, eating after pet feed, and a speech bubble from pet say" width="820">
+</p>
+
+<p align="center">
   <img src="docs/showcase.gif" alt="The bundled pets (blob, cat, ghost, robot, chick) cycling through idle, working, happy, sad, sleeping and eating" width="520">
 </p>
 
@@ -154,7 +158,7 @@ A pet is a folder with one animated image per state: `idle`, `working`, `happy`,
 
 GIF and APNG are both supported and per-frame delays are respected. Pixel art is drawn with nearest-neighbour scaling, so a 24x24 sprite at `scale: 3` is crisp. `terminal-pet pets` lists everything it can find. Pets are searched in `$TERMINAL_PET_PETS_DIR`, `~/.config/terminal-pet/pets`, then the installed share directory.
 
-The bundled pets are all generated from [scripts/gen-pets.swift](scripts/gen-pets.swift): each one is a small ASCII-art body plus shared helpers for eyes, mouths, tears and Zs. `make pets` regenerates them and writes a contact sheet to `.build/pets-sheet.png`. Copy one of the `func cat()`-style definitions to make a new character.
+The bundled pets are all generated from [scripts/gen-pets.swift](scripts/gen-pets.swift): each one is a small ASCII-art body plus shared helpers for eyes, mouths, tears and Zs. `make pets` regenerates them and writes a contact sheet to `.build/pets-sheet.png`. Copy one of the `func cat()`-style definitions to make a new character. `make demo` re-records the README demo from a real Terminal window (asks for Screen Recording permission once; no ffmpeg needed).
 
 ## How it works
 
