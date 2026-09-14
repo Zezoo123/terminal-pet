@@ -40,11 +40,39 @@ autoload -Uz add-zsh-hook
 add-zsh-hook preexec _terminal_pet_preexec
 add-zsh-hook precmd _terminal_pet_precmd
 
-# Convenience: `pet happy`, `pet sleeping`, `pet poke`, `pet quit`
+# Like _terminal_pet_send, but waits for and prints the reply.
+_terminal_pet_call() {
+    if [[ ! -S "$TERMINAL_PET_SOCKET" ]]; then
+        print -u2 "terminal-pet is not running"
+        return 1
+    fi
+    if (( $+builtins[zsocket] )); then
+        local fd reply
+        zsocket "$TERMINAL_PET_SOCKET" 2>/dev/null || { print -u2 "terminal-pet is not running"; return 1 }
+        fd=$REPLY
+        print -u $fd -r -- "$*"
+        read -t 5 -u $fd -r reply
+        exec {fd}>&-
+        print -r -- "$reply"
+        [[ "$reply" != error* ]]
+    else
+        command terminal-pet send "$@"
+    fi
+}
+
+# Convenience command:
+#   pet                 poke it
+#   pet ghost           switch to another pet (name, directory, or .gif); saved to config
+#   pet sad             force a state: idle | working | happy | sad | sleeping
+#   pet scale 4         resize;  pet anchor inside-bottom-left   move
+#   pet list            list available pets;  pet status;  pet quit
 pet() {
-    case "$1" in
-        poke|quit) _terminal_pet_send "$1" ;;
-        "") _terminal_pet_send poke ;;
-        *)  _terminal_pet_send "state $1" ;;
+    case "${1:-poke}" in
+        poke|quit|status) _terminal_pet_call "$1" ;;
+        idle|working|happy|sad|sleeping) _terminal_pet_call "state $1" ;;
+        scale|anchor) _terminal_pet_call "$1" "$2" ;;
+        list|pets) command terminal-pet pets 2>/dev/null || print -u2 "terminal-pet is not on your PATH" ;;
+        help|-h|--help) command terminal-pet --help 2>/dev/null || print -u2 "terminal-pet is not on your PATH" ;;
+        *) _terminal_pet_call "pet $1" ;;
     esac
 }

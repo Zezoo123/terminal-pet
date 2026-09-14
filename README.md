@@ -47,11 +47,29 @@ It also gives you a `pet` command:
 
 ```zsh
 pet            # poke it
-pet sleeping   # force a state: idle | working | happy | sad | sleeping
-pet quit       # stop the app
+pet ghost      # switch to another pet (any name from `pet list`, a folder, or a .gif)
+pet sad        # force a state: idle | working | happy | sad | sleeping
+pet scale 4    # resize
+pet anchor inside-bottom-left
+pet list       # what's installed
+pet status
+pet quit
 ```
 
-Anything else can talk to the pet with `terminal-pet send <event>`, e.g. from a Makefile, a CI script, or bash:
+## Changing things on the fly
+
+While a pet is running, the CLI talks to it instead of starting another one, and every change is written to the config file so it sticks:
+
+```bash
+terminal-pet --pet ghost                 # ok now showing Ghost (saved to config)
+terminal-pet --scale 4
+terminal-pet --anchor top-right
+terminal-pet status                      # pet=Ghost state=idle anchor=top-right scale=4.0 ...
+```
+
+The same flags with no pet running start one with those settings.
+
+Anything else can send raw events with `terminal-pet send <event>`, e.g. from a Makefile, a CI script, or bash:
 
 ```bash
 terminal-pet send preexec make
