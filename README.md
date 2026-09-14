@@ -24,28 +24,36 @@ macOS only for now (native Swift/AppKit, no dependencies). Linux and Windows are
 
 ## Install
 
-Requires Xcode Command Line Tools (`xcode-select --install`), macOS 13 or later.
+Requires macOS 13 or later and the Xcode Command Line Tools (`xcode-select --install`). Works with zsh, bash and fish.
 
 ```bash
 git clone https://github.com/Zezoo123/terminal-pet.git
 cd terminal-pet
 make install            # builds and installs to ~/.local (override with PREFIX=/usr/local)
+~/.local/bin/terminal-pet setup
 ```
 
-Then add the plugin to `~/.zshrc`:
-
-```zsh
-source ~/.local/share/terminal-pet/terminal-pet.plugin.zsh
-```
-
-Start the pet (it detaches and gives you the prompt back):
+`setup` detects your shell from `$SHELL`, adds the matching plugin to its startup file, and puts `terminal-pet` on your PATH if it isn't already (`--shell bash` to pick explicitly, `--print` to only show the lines). Then open a new terminal and start the pet:
 
 ```bash
-terminal-pet            # or `make launchd` to start it at login
+terminal-pet            # detaches and gives you the prompt back; `make launchd` starts it at login
 terminal-pet stop       # when you've had enough
 ```
 
-Open a new zsh session, run a command, and watch it react.
+Run any command and watch it react.
+
+<details>
+<summary>Doing it by hand instead of <code>setup</code></summary>
+
+| shell | add to | line |
+|-------|--------|------|
+| zsh   | `~/.zshrc` | `source ~/.local/share/terminal-pet/terminal-pet.plugin.zsh` |
+| bash  | `~/.bash_profile` (or `~/.bashrc`) | `source ~/.local/share/terminal-pet/terminal-pet.plugin.bash` |
+| fish  | `~/.config/fish/conf.d/terminal-pet.fish` | `source ~/.local/share/terminal-pet/terminal-pet.fish` |
+
+And `export PATH="$HOME/.local/bin:$PATH"` (`fish_add_path ~/.local/bin` in fish) if `~/.local/bin` isn't on your PATH.
+
+</details>
 
 ### Try it without installing
 
@@ -55,7 +63,13 @@ make run                # runs in the foreground with the repo's pets, Ctrl-C to
 
 ## Shell integration
 
-The zsh plugin hooks `preexec` and `precmd` and sends one line over a Unix socket (`/tmp/terminal-pet-<uid>.sock`) using zsh's built-in `zsocket`, so nothing is spawned per prompt. It is a no-op when the pet isn't running.
+Each plugin hooks the shell's "command is about to run" and "prompt is about to show" events and sends one line over a Unix socket (`/tmp/terminal-pet-<uid>.sock`). It is a no-op when the pet isn't running.
+
+| shell | plugin | how it talks |
+|-------|--------|--------------|
+| zsh   | [shell/terminal-pet.plugin.zsh](shell/terminal-pet.plugin.zsh) | `add-zsh-hook preexec/precmd`, zsh's built-in `zsocket`, nothing spawned |
+| bash  | [shell/terminal-pet.plugin.bash](shell/terminal-pet.plugin.bash) | `DEBUG` trap + `PROMPT_COMMAND` (or bash-preexec if present), `terminal-pet send` in the background |
+| fish  | [shell/terminal-pet.fish](shell/terminal-pet.fish) | `fish_preexec` / `fish_postexec` events, `terminal-pet send` in the background |
 
 It also gives you a `pet` command:
 
@@ -176,7 +190,6 @@ New pets, new terminals, and new shells are the best ways to help. See [CONTRIBU
 - [ ] Sound / notification on long command completion
 - [ ] tmux awareness (which pane is active)
 - [ ] Linux (X11/Wayland overlay) and Windows
-- [ ] bash / fish plugins
 
 ## License
 

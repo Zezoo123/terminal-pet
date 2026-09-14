@@ -8,6 +8,7 @@ Thanks for wanting to help. The most valuable things you can add right now are *
 make run          # builds and runs in the foreground with the repo's pets (Ctrl-C to quit)
 make install      # installs to ~/.local, or PREFIX=/usr/local
 make pets         # regenerates every bundled pet + a contact sheet at .build/pets-sheet.png
+make test         # checks the shell plugins against a mock socket server
 ```
 
 Requires macOS 13+ and the Xcode Command Line Tools. No Xcode project, no dependencies. CI (`.github/workflows/ci.yml`) builds in release mode, smoke-tests the CLI, checks the pets regenerate byte-for-byte, and parses the zsh plugin. Run those steps locally before opening a PR.
@@ -30,7 +31,7 @@ The pet follows whichever app is frontmost and whose name or bundle identifier i
 
 ## Other shells and platforms
 
-- **bash / fish**: the protocol is one line over a Unix socket (`preexec <cmd>`, `precmd <status>`, see [EventServer.swift](Sources/terminal-pet/EventServer.swift)). A plugin only needs to send those two lines from the shell's equivalent hooks. `shell/terminal-pet.plugin.zsh` is the reference.
+- **Other shells**: the protocol is one line over a Unix socket (`preexec <cmd>`, `precmd <status>`, see [EventServer.swift](Sources/terminal-pet/EventServer.swift)). A plugin only needs to send those two lines from the shell's equivalent hooks. The zsh, bash and fish plugins in `shell/` are the references; `make test` runs them against a mock server.
 - **Linux / Windows**: the app is split so that only [PetPanel.swift](Sources/terminal-pet/PetPanel.swift) (the overlay window) and [TerminalTracker.swift](Sources/terminal-pet/TerminalTracker.swift) (finding the terminal window) are macOS-specific. Open an issue before starting so we can agree on an approach.
 
 ## Style
