@@ -34,11 +34,11 @@ uninstall: unlaunchd
 	rm -rf "$(SHARE)"
 	@echo "left your config in $(CONFIG)"
 
-## Regenerate the bundled blob pet from scripts/gen-default-pet.swift.
+## Regenerate the bundled pets from scripts/gen-pets.swift (add --sheet to eyeball them).
 pets:
 	mkdir -p .build
-	swiftc -O -o .build/gen-default-pet scripts/gen-default-pet.swift
-	.build/gen-default-pet pets/blob
+	swiftc -O -o .build/gen-pets scripts/gen-pets.swift
+	.build/gen-pets pets --sheet .build/pets-sheet.png
 
 ## Start the pet at login via launchd.
 launchd:

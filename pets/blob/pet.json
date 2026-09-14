@@ -1,11 +1,11 @@
 {
-  "name": "Blob",
-  "author": "terminal-pet",
-  "states": {
-    "idle": "idle.gif",
-    "working": "working.gif",
-    "happy": "happy.gif",
-    "sad": "sad.gif",
-    "sleeping": "sleeping.gif"
+  "author" : "terminal-pet",
+  "name" : "Blob",
+  "states" : {
+    "happy" : "happy.gif",
+    "idle" : "idle.gif",
+    "sad" : "sad.gif",
+    "sleeping" : "sleeping.gif",
+    "working" : "working.gif"
   }
 }
