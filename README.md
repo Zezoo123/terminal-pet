@@ -167,6 +167,10 @@ The bundled pets are all generated from [scripts/gen-pets.swift](scripts/gen-pet
 - `AnimationView.swift` decodes frames with ImageIO and drives the timing itself, so state changes restart cleanly.
 - `EventServer.swift` is a ~100-line Unix socket listener; `shell/terminal-pet.plugin.zsh` is the client.
 
+## Contributing
+
+New pets, new terminals, and new shells are the best ways to help. See [CONTRIBUTING.md](CONTRIBUTING.md); adding a pet is about 60 lines of Swift.
+
 ## Roadmap
 
 - [ ] Sound / notification on long command completion
