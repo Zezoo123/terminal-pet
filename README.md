@@ -24,7 +24,16 @@ macOS only for now (native Swift/AppKit, no dependencies). Linux and Windows are
 
 ## Install
 
-Requires macOS 13 or later and the Xcode Command Line Tools (`xcode-select --install`). Works with zsh, bash and fish.
+Requires macOS 13 or later. Works with zsh, bash and fish.
+
+**Homebrew**
+
+```bash
+brew install Zezoo123/tap/terminal-pet
+terminal-pet setup
+```
+
+**From source** (needs the Xcode Command Line Tools, `xcode-select --install`)
 
 ```bash
 git clone https://github.com/Zezoo123/terminal-pet.git
@@ -51,7 +60,9 @@ Run any command and watch it react.
 | bash  | `~/.bash_profile` (or `~/.bashrc`) | `source ~/.local/share/terminal-pet/terminal-pet.plugin.bash` |
 | fish  | `~/.config/fish/conf.d/terminal-pet.fish` | `source ~/.local/share/terminal-pet/terminal-pet.fish` |
 
-And `export PATH="$HOME/.local/bin:$PATH"` (`fish_add_path ~/.local/bin` in fish) if `~/.local/bin` isn't on your PATH.
+And `export PATH="$HOME/.local/bin:$PATH"` (`fish_add_path ~/.local/bin` in fish) if `~/.local/bin` isn't on your PATH. With Homebrew the files live under `$(brew --prefix)/opt/terminal-pet/share/terminal-pet/` instead.
+
+zsh plugin managers can load the plugin straight from the repo (the app still has to be installed): `zinit light Zezoo123/terminal-pet`, `antigen bundle Zezoo123/terminal-pet`, or clone it into `$ZSH_CUSTOM/plugins/terminal-pet` for oh-my-zsh.
 
 </details>
 
