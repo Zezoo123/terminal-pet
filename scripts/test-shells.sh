@@ -46,18 +46,21 @@ check() {   # check <shell> <expected lines...>
     : > "$LOG"
 }
 
+# Each shell is driven through a pseudo-terminal (fish only fires its hooks on a tty).
+run() { python3 scripts/pty-run.py "$@" >/dev/null 2>&1; }
+
 echo "== zsh"
-printf 'source shell/terminal-pet.plugin.zsh\ntrue\nfalse\n' | zsh -i 2>/dev/null >/dev/null
-check zsh "preexec true" "precmd 0" "preexec false" "precmd 1"
+run zsh -f -i -- 'source shell/terminal-pet.plugin.zsh' 'true' 'false' 'echo hi | cat'
+check zsh "preexec true" "precmd 0" "preexec false" "precmd 1" "preexec echo hi | cat"
 
 echo "== bash"
-printf 'source shell/terminal-pet.plugin.bash\ntrue\nfalse\necho hi | cat\n\n' | bash --norc -i 2>/dev/null >/dev/null
+run bash --norc -i -- 'source shell/terminal-pet.plugin.bash' 'true' 'false' 'echo hi | cat' ''
 check bash "preexec true" "precmd 0" "preexec false" "precmd 1" "preexec echo hi | cat"
 
 if command -v fish >/dev/null; then
     echo "== fish"
-    printf 'source shell/terminal-pet.fish\ntrue\nfalse\n' | fish -i 2>/dev/null >/dev/null
-    check fish "preexec true" "precmd 0" "preexec false" "precmd 1"
+    run fish --no-config -i -- 'source shell/terminal-pet.fish' 'true' 'false' 'echo hi | cat'
+    check fish "preexec true" "precmd 0" "preexec false" "precmd 1" "preexec echo hi | cat"
 else
     echo "== fish: not installed, skipped"
 fi
