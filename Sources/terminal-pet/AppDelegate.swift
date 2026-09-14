@@ -241,8 +241,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let a = anim {
             let sprite = NSSize(width: CGFloat(a.width) * config.scale, height: CGFloat(a.height) * config.scale)
             view.spriteSize = sprite
+            view.scale = CGFloat(config.scale)
             view.alignRight = !config.anchor.hasSuffix("left")
-            let size = NSSize(width: max(sprite.width, AnimationView.minWidth), height: sprite.height + AnimationView.bubbleSpace)
+            let size = NSSize(width: view.minWidth, height: sprite.height + view.bubbleSpace)
             if panel.frame.size != size {
                 panel.setContentSize(size)
                 reposition(force: true)
