@@ -4,7 +4,7 @@
 [![macOS](https://img.shields.io/badge/platform-macOS%2013%2B-blue)](#install)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-A little animated companion that lives on top of your terminal window and reacts to what you do in the shell.
+A little animated tomagoshi-like companion that lives on top of your terminal window and reacts to what you do in the shell.
 
 <p align="center">
   <img src="docs/demo.gif" alt="terminal-pet reacting to commands in Terminal.app: happy after a success, sad after a failure, eating after pet feed, and a speech bubble from pet say" width="820">
