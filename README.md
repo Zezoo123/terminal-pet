@@ -139,6 +139,9 @@ terminal-pet send precmd 1      # exit status
 | `ghost` | a floating ghost that bobs up and down |
 | `robot` | a boxy robot whose screen face and antenna light change with its mood |
 | `chick` | a yellow chick that flaps its wings when a command succeeds |
+| `dog`   | a floppy-eared dog, tongue out when happy, carries its bone |
+| `frog`  | a wide-mouthed frog that hops on success and dreams of flies |
+| `penguin` | a penguin that waddles while working and flaps its flippers |
 
 Pick one with `"pet": "cat"` in the config or `terminal-pet --pet cat`. `terminal-pet pets` lists everything installed.
 
@@ -156,7 +159,7 @@ Pick one with `"pet": "cat"` in the config or `terminal-pet --pet cat`. `termina
 | `reactionSeconds` | `2.5`         | how long happy/sad is shown |
 | `pollHz`          | `30`          | how often it checks where the terminal window is |
 | `smooth`          | `false`       | bilinear scaling instead of crisp pixels (for photo-like GIFs) |
-| `terminals`       | see example   | app names or bundle IDs treated as terminals |
+| `terminals`       | see example   | app names or bundle IDs treated as terminals (Terminal, iTerm2, kitty, Alacritty, WezTerm, Ghostty, Warp, Hyper, Tabby, Rio by default) |
 
 Flags override the file for one run: `terminal-pet --pet ~/Downloads/cat.gif --scale 1 --anchor top-right`.
 
