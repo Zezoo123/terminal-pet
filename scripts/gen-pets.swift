@@ -3,6 +3,7 @@
 //   swiftc -O -o .build/gen-pets scripts/gen-pets.swift
 //   .build/gen-pets pets                  # writes pets/<name>/{state}.gif + pet.json
 //   .build/gen-pets pets --sheet out.png  # also renders a contact sheet for eyeballing
+//   .build/gen-pets pets --showcase docs/showcase.gif   # animated strip of every pet for the README
 //
 // Every sprite is drawn on a 24x24 canvas (the app scales it, nearest-neighbour).
 // Bodies are ASCII art with a per-pet palette; faces and effects are drawn by the helpers below.
@@ -116,6 +117,33 @@ func drawTear(_ c: Canvas, x: Int, y: Int, step: Int?) {
     if let t = step { c.rect(x, y + t, 1, 2, tearBlue) }
 }
 
+enum Food { case cookie, fish, candy, battery, seed }
+/// A snack held beside the mouth at (x, y). stage 0 = whole, 1 = half eaten, 2+ = gone.
+func drawFood(_ c: Canvas, _ kind: Food, x: Int, y: Int, stage: Int) {
+    guard stage < 2 else { return }
+    let half = stage == 1
+    switch kind {
+    case .cookie:
+        let dough = rgb(217, 160, 91), chip = rgb(92, 54, 30)
+        c.blit(half ? ["dd..", "ddd.", "dd..", ".d.."] : [".dd.", "dddd", "dddd", ".dd."], x, y, ["d": dough])
+        c.set(x + 1, y + 1, chip); if !half { c.set(x + 2, y + 2, chip) }
+    case .fish:
+        let scale = rgb(125, 168, 196), fin = rgb(71, 111, 140)
+        c.blit(half ? ["f..", "ss.", "f.."] : ["f..s.", "sssss", "f..s."], x, y, ["s": scale, "f": fin])
+    case .candy:
+        let wrap = rgb(244, 114, 182), shine = rgb(253, 224, 71)
+        c.blit(half ? [".w.", "ww.", ".w."] : ["w.ww.w", "wwwwww", "w.ww.w"], x, y, ["w": wrap])
+        if !half { c.set(x + 2, y + 1, shine) }
+    case .battery:
+        let body = rgb(74, 222, 128), cap = rgb(148, 163, 184), dark = rgb(22, 101, 52)
+        c.blit(half ? [".c.", "bbb", "bbb"] : [".c.", "bbb", "bbb", "bbb", "bbb", "bbb"], x, y, ["c": cap, "b": body])
+        c.set(x + 1, y + (half ? 2 : 3), dark)
+    case .seed:
+        let hull = rgb(120, 72, 32)
+        c.blit(half ? ["h"] : ["h.", "hh", ".h"], x, y, ["h": hull])
+    }
+}
+
 // MARK: - Pet definitions
 
 struct Frame { let image: CGImage; let delay: Double }
@@ -162,7 +190,7 @@ func blob() -> PetDef {
         "....dddddddddddddd....",
     ])
     func f(_ delay: Double, squished: Bool = false, lift: Int = 0, eyes: Eyes = .open(0), mouth: Mouth = .smile,
-           tear: Int? = nil, zzz: Int = 0, sweat: Bool = false) -> Frame {
+           tear: Int? = nil, zzz: Int = 0, sweat: Bool = false, food: Int? = nil) -> Frame {
         frame(delay) { c in
             let shape = squished ? squish : normal
             let bw = shape[0].count, bh = shape.count
@@ -176,6 +204,7 @@ func blob() -> PetDef {
             drawTear(c, x: lx, y: eyeY + 3, step: tear)
             if sweat { c.rect(ox + bw - 3, oy + 1, 1, 2, tearBlue) }
             drawZzz(c, zzz, x: 17, y: oy - 4, color: outline)
+            if let st = food { drawFood(c, .cookie, x: ox - 2, y: oy + 6, stage: st) }
         }
     }
     return PetDef(name: "Blob", states: [
@@ -191,6 +220,9 @@ func blob() -> PetDef {
                      f(0.5, squished: true, eyes: .closed, mouth: .flat, zzz: 2),
                      f(0.7, squished: true, eyes: .closed, mouth: .flat, zzz: 3),
                      f(0.4, squished: true, eyes: .closed, mouth: .flat)],
+        "eating": [f(0.25, mouth: .open, food: 0), f(0.25, squished: true, mouth: .flat, food: 0),
+                   f(0.25, mouth: .open, food: 1), f(0.25, squished: true, mouth: .flat, food: 1),
+                   f(0.3, eyes: .happy, mouth: .open, food: 2), f(0.5, squished: true, eyes: .happy, mouth: .smile, food: 2)],
     ])
 }
 
@@ -228,7 +260,7 @@ func cat() -> PetDef {
         "..kkkkkkkkkkkkkkkkkk..",
     ])
     func f(_ delay: Double, tailUp: Bool = true, lift: Int = 0, eyes: Eyes = .open(0), mouth: Mouth = .smile,
-           tear: Int? = nil, zzz: Int = 0, sweat: Bool = false) -> Frame {
+           tear: Int? = nil, zzz: Int = 0, sweat: Bool = false, food: Int? = nil) -> Frame {
         frame(delay) { c in
             let shape = tailUp ? bodyTailUp : bodyTailDown
             let bw = shape[0].count, bh = shape.count
@@ -247,6 +279,7 @@ func cat() -> PetDef {
             drawTear(c, x: lx, y: eyeY + 3, step: tear)
             if sweat { c.rect(ox + bw - 6, oy + 2, 1, 2, tearBlue) }
             drawZzz(c, zzz, x: 17, y: oy - 3, color: dark)
+            if let st = food { drawFood(c, .fish, x: ox - 2, y: oy + 8, stage: st) }
         }
     }
     return PetDef(name: "Cat", states: [
@@ -260,6 +293,9 @@ func cat() -> PetDef {
                 f(0.35, tailUp: false, eyes: .sad, mouth: .frown, tear: 2), f(0.35, tailUp: false, eyes: .sad, mouth: .frown)],
         "sleeping": [f(0.5, tailUp: false, eyes: .closed, mouth: .none, zzz: 1), f(0.5, tailUp: false, eyes: .closed, mouth: .none, zzz: 2),
                      f(0.7, tailUp: false, eyes: .closed, mouth: .none, zzz: 3), f(0.4, tailUp: false, eyes: .closed, mouth: .none)],
+        "eating": [f(0.25, mouth: .open, food: 0), f(0.25, tailUp: false, mouth: .flat, food: 0),
+                   f(0.25, mouth: .open, food: 1), f(0.25, tailUp: false, mouth: .flat, food: 1),
+                   f(0.3, eyes: .happy, mouth: .open, food: 2), f(0.5, tailUp: false, eyes: .happy, food: 2)],
     ])
 }
 
@@ -295,7 +331,7 @@ func ghost() -> PetDef {
         ".kkk.kkkkkkk.kk.",
     ])
     func f(_ delay: Double, alt: Bool = false, lift: Int = 0, eyes: Eyes = .open(0), mouth: Mouth = .open,
-           tear: Int? = nil, zzz: Int = 0, sweat: Bool = false) -> Frame {
+           tear: Int? = nil, zzz: Int = 0, sweat: Bool = false, food: Int? = nil) -> Frame {
         frame(delay) { c in
             let shape = alt ? waveB : waveA
             let bw = shape[0].count, bh = shape.count
@@ -311,6 +347,7 @@ func ghost() -> PetDef {
             drawTear(c, x: lx, y: eyeY + 3, step: tear)
             if sweat { c.rect(ox + bw - 3, oy + 3, 1, 2, tearBlue) }
             drawZzz(c, zzz, x: 17, y: oy - 3, color: edge)
+            if let st = food { drawFood(c, .candy, x: ox - 3, y: oy + 9, stage: st) }
         }
     }
     return PetDef(name: "Ghost", states: [
@@ -323,6 +360,9 @@ func ghost() -> PetDef {
                 f(0.35, lift: -2, eyes: .sad, mouth: .frown, tear: 2), f(0.35, alt: true, lift: -2, eyes: .sad, mouth: .frown)],
         "sleeping": [f(0.5, lift: -2, eyes: .closed, mouth: .flat, zzz: 1), f(0.5, alt: true, lift: -2, eyes: .closed, mouth: .flat, zzz: 2),
                      f(0.7, lift: -2, eyes: .closed, mouth: .flat, zzz: 3), f(0.4, alt: true, lift: -2, eyes: .closed, mouth: .flat)],
+        "eating": [f(0.25, mouth: .open, food: 0), f(0.25, alt: true, lift: 1, mouth: .flat, food: 0),
+                   f(0.25, mouth: .open, food: 1), f(0.25, alt: true, lift: 1, mouth: .flat, food: 1),
+                   f(0.3, eyes: .happy, mouth: .open, food: 2), f(0.5, alt: true, lift: 1, eyes: .happy, mouth: .smile, food: 2)],
     ])
 }
 
@@ -365,7 +405,7 @@ func robot() -> PetDef {
     ])
     enum Face { case eyes(Eyes, Mouth), dots(Int), off }
     func f(_ delay: Double, up: Bool = false, lift: Int = 0, face: Face = .eyes(.open(0), .flat), light: Color? = nil,
-           spark: Bool = false, zzz: Int = 0) -> Frame {
+           spark: Bool = false, zzz: Int = 0, food: Int? = nil) -> Frame {
         frame(delay) { c in
             let shape = up ? armsUp : armsDown
             let bw = shape[0].count, bh = shape.count
@@ -389,6 +429,7 @@ func robot() -> PetDef {
                 c.set(ox + bw - 1, oy + 3, yellow); c.set(ox + bw, oy + 2, yellow); c.set(ox + bw + 1, oy + 4, yellow)
             }
             drawZzz(c, zzz, x: 17, y: oy - 4, color: dark)
+            if let st = food { drawFood(c, .battery, x: ox - 2, y: oy + 7, stage: st) }
         }
     }
     let green = rgb(74, 222, 128), red = rgb(248, 113, 113), amber = rgb(251, 191, 36)
@@ -401,6 +442,9 @@ func robot() -> PetDef {
         "sad": [f(0.3, face: .eyes(.sad, .frown), light: red, spark: true), f(0.3, face: .eyes(.sad, .frown)),
                 f(0.3, face: .eyes(.sad, .frown), light: red), f(0.3, face: .eyes(.sad, .frown), spark: true)],
         "sleeping": [f(0.5, face: .off, zzz: 1), f(0.5, face: .off, zzz: 2), f(0.7, face: .off, zzz: 3), f(0.4, face: .off)],
+        "eating": [f(0.25, face: .eyes(.open(0), .open), light: amber, food: 0), f(0.25, face: .eyes(.open(0), .flat), light: green, food: 0),
+                   f(0.25, face: .eyes(.open(0), .open), light: amber, food: 1), f(0.25, face: .eyes(.open(0), .flat), light: green, food: 1),
+                   f(0.3, up: true, face: .eyes(.happy, .smile), light: green, food: 2), f(0.5, up: true, face: .eyes(.happy, .smile), light: green, food: 2)],
     ])
 }
 
@@ -429,7 +473,7 @@ func chick() -> PetDef {
     let wingDown = ["kk", "ky", "kk"]
     let wingUp = [".k", "kk", "ky"]
     func f(_ delay: Double, flap: Bool = false, lift: Int = 0, eyes: Eyes = .open(0), mouth: Mouth = .none,
-           tear: Int? = nil, zzz: Int = 0, sweat: Bool = false) -> Frame {
+           tear: Int? = nil, zzz: Int = 0, sweat: Bool = false, food: Int? = nil) -> Frame {
         frame(delay) { c in
             let bw = body[0].count, bh = body.count
             let ox = (size - bw) / 2, oy = size - bh - lift
@@ -450,6 +494,7 @@ func chick() -> PetDef {
             drawTear(c, x: lx, y: eyeY + 3, step: tear)
             if sweat { c.rect(ox + bw - 4, oy + 2, 1, 2, tearBlue) }
             drawZzz(c, zzz, x: 17, y: oy - 3, color: dark)
+            if let st = food { drawFood(c, .seed, x: ox - 1, y: oy + 10, stage: st) }
         }
     }
     return PetDef(name: "Chick", states: [
@@ -461,12 +506,15 @@ func chick() -> PetDef {
         "sad": [f(0.35, eyes: .sad, mouth: .frown, tear: 0), f(0.35, eyes: .sad, mouth: .frown, tear: 1),
                 f(0.35, eyes: .sad, mouth: .frown, tear: 2), f(0.35, eyes: .sad, mouth: .frown)],
         "sleeping": [f(0.5, eyes: .closed, zzz: 1), f(0.5, eyes: .closed, zzz: 2), f(0.7, eyes: .closed, zzz: 3), f(0.4, eyes: .closed)],
+        "eating": [f(0.25, mouth: .open, food: 0), f(0.25, lift: 1, food: 0),
+                   f(0.25, mouth: .open, food: 1), f(0.25, lift: 1, food: 1),
+                   f(0.3, flap: true, eyes: .happy, mouth: .open, food: 2), f(0.5, eyes: .happy, food: 2)],
     ])
 }
 
 // MARK: - Output
 
-let stateOrder = ["idle", "working", "happy", "sad", "sleeping"]
+let stateOrder = ["idle", "working", "happy", "sad", "sleeping", "eating"]
 let pets = [blob(), cat(), ghost(), robot(), chick()]
 
 func writeGIF(_ frames: [Frame], to url: URL) {
@@ -509,10 +557,41 @@ func writeSheet(to url: URL, scale: Int = 5) {
     print("wrote \(url.path)")
 }
 
+/// One animated GIF with every pet side by side cycling through its states (README hero).
+func writeShowcase(to url: URL, scale: Int = 4, secondsPerState: Double = 2.4, step: Double = 0.1) {
+    let gap = 2, cell = size * scale
+    let w = (size * pets.count + gap * (pets.count - 1)) * scale, h = cell
+    var frames: [Frame] = []
+    for state in stateOrder {
+        var t = 0.0
+        while t < secondsPerState {
+            let ctx = CGContext(data: nil, width: w, height: h, bitsPerComponent: 8, bytesPerRow: 0,
+                                space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+            ctx.interpolationQuality = .none
+            for (i, pet) in pets.enumerated() {
+                let anim = pet.states[state]!
+                let total = anim.reduce(0) { $0 + $1.delay }
+                var local = t.truncatingRemainder(dividingBy: total), idx = 0
+                while idx < anim.count - 1, local >= anim[idx].delay { local -= anim[idx].delay; idx += 1 }
+                ctx.draw(anim[idx].image, in: CGRect(x: i * (size + gap) * scale, y: 0, width: cell, height: cell))
+            }
+            frames.append(Frame(image: ctx.makeImage()!, delay: step))
+            t += step
+        }
+    }
+    writeGIF(frames, to: url)
+    print("wrote \(url.path) (\(frames.count) frames)")
+}
+
 var args = Array(CommandLine.arguments.dropFirst())
 var sheetPath: String?
+var showcasePath: String?
 if let i = args.firstIndex(of: "--sheet"), i + 1 < args.count {
     sheetPath = args[i + 1]
+    args.removeSubrange(i...i + 1)
+}
+if let i = args.firstIndex(of: "--showcase"), i + 1 < args.count {
+    showcasePath = args[i + 1]
     args.removeSubrange(i...i + 1)
 }
 let root = URL(fileURLWithPath: args.first ?? "pets")
@@ -533,3 +612,4 @@ for pet in pets {
     print("wrote \(dir.path) (\(stateOrder.map { "\($0):\(pet.states[$0]!.count)" }.joined(separator: " ")))")
 }
 if let p = sheetPath { writeSheet(to: URL(fileURLWithPath: p)) }
+if let p = showcasePath { writeShowcase(to: URL(fileURLWithPath: p)) }

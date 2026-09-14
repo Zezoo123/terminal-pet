@@ -2,6 +2,7 @@
   "author" : "terminal-pet",
   "name" : "Robot",
   "states" : {
+    "eating" : "eating.gif",
     "happy" : "happy.gif",
     "idle" : "idle.gif",
     "sad" : "sad.gif",
