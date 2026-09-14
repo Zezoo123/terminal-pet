@@ -72,7 +72,8 @@ final class Pet {
             // Dev layout: .build/<triple>/debug/terminal-pet + ./pets
             paths.append(bin.appendingPathComponent("../../../pets").standardized)
         }
-        return paths
+        var seen = Set<String>()
+        return paths.filter { seen.insert($0.standardizedFileURL.path).inserted }
     }
 
     /// Lists pet names found across the search paths.

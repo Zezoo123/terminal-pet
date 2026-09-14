@@ -1,8 +1,8 @@
 import AppKit
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private let config: Config
-    private let pet: Pet
+    private var config: Config
+    private var pet: Pet
     private let panel = PetPanel()
     private let view = AnimationView()
     private let tracker: TerminalTracker
@@ -34,7 +34,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let socketPath = EventServer.defaultPath
         do {
-            let s = EventServer(path: socketPath) { [weak self] line in self?.handle(event: line) }
+            let s = EventServer(path: socketPath) { [weak self] line in self?.handle(event: line) ?? "error: shutting down" }
             try s.start()
             server = s
         } catch {
@@ -55,15 +55,46 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - Events
 
-    /// Lines from the zsh plugin / CLI: `preexec <cmd>`, `precmd <status>`, `poke`, `state <name>`, `quit`.
-    func handle(event: String) {
+    /// Lines from the zsh plugin / CLI. Returns one reply line.
+    ///   shell activity:  preexec <cmd> | precmd <status> | poke | state <name>
+    ///   live settings:   pet <name|dir|file> | scale <n> | anchor <pos>   (also saved to config.json)
+    ///   misc:            status | quit
+    @discardableResult
+    func handle(event: String) -> String {
         let parts = event.split(separator: " ", maxSplits: 1).map(String.init)
-        guard let kind = parts.first else { return }
-        let arg = parts.count > 1 ? parts[1] : ""
-        lastActivity = Date()
-        reactionTimer?.invalidate()
+        guard let kind = parts.first else { return "error: empty event" }
+        let arg = parts.count > 1 ? parts[1].trimmingCharacters(in: .whitespaces) : ""
         log("event '\(event)' (state was \(state.rawValue))")
 
+        switch kind {
+        case "status":
+            return "pet=\(pet.name) state=\(state.rawValue) anchor=\(config.anchor) scale=\(config.scale) config=\(Config.configFile.path)"
+        case "pet":
+            guard !arg.isEmpty else { return "error: pet needs a name, directory or image file" }
+            do {
+                pet = try Pet.load(arg)
+            } catch {
+                return "error: \(error)"
+            }
+            config.pet = arg
+            setState(state)
+            return "ok now showing \(pet.name)" + persist("pet", arg)
+        case "scale":
+            guard let v = Double(arg), v > 0, v <= 20 else { return "error: scale must be a number between 0 and 20" }
+            config.scale = v
+            setState(state)
+            return "ok scale \(v)" + persist("scale", v)
+        case "anchor":
+            guard Config.anchors.contains(arg) else { return "error: anchor must be one of " + Config.anchors.joined(separator: ", ") }
+            config.anchor = arg
+            reposition(force: true)
+            return "ok anchor \(arg)" + persist("anchor", arg)
+        default:
+            break
+        }
+
+        lastActivity = Date()
+        reactionTimer?.invalidate()
         switch kind {
         case "preexec":
             setState(.working)
@@ -80,9 +111,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case "state":
             if let s = PetState(rawValue: arg) { setState(s) }
         case "quit":
-            NSApp.terminate(nil)
+            DispatchQueue.main.async { NSApp.terminate(nil) }
+            return "ok bye"
         default:
-            break
+            return "error: unknown event '\(kind)'"
+        }
+        return "ok"
+    }
+
+    private func persist(_ key: String, _ value: Any) -> String {
+        do {
+            try Config.save(key, value)
+            return " (saved to config)"
+        } catch {
+            return " (could not save config: \(error))"
         }
     }
 
@@ -104,8 +146,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let size = NSSize(width: CGFloat(a.width) * config.scale, height: CGFloat(a.height) * config.scale)
             if panel.frame.size != size {
                 panel.setContentSize(size)
-                reposition(force: true)
             }
+            reposition(force: true)
         }
     }
 

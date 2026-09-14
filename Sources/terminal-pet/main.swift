@@ -7,12 +7,18 @@ func usage() -> String {
     terminal-pet \(version) - a little animated companion that sits on your terminal window
 
     usage:
-      terminal-pet [--pet NAME|DIR|FILE.gif] [--scale N] [--anchor POS]   run the pet
-      terminal-pet send <event...>   send an event to the running pet
-                                     (preexec <cmd> | precmd <status> | poke | state <name> | quit)
+      terminal-pet                   run the pet
+      terminal-pet --pet NAME|DIR|FILE.gif    switch pet (live if one is running, else start with it)
+      terminal-pet --scale N         change size
+      terminal-pet --anchor POS      change position: \(Config.anchors.joined(separator: " | "))
+      terminal-pet status            show what the running pet is doing
       terminal-pet pets              list pets found in the search paths
+      terminal-pet send <event...>   raw event: preexec <cmd> | precmd <status> | poke | state <name> | quit
       terminal-pet socket            print the socket path
       terminal-pet --help | --version
+
+    When a pet is already running, --pet / --scale / --anchor change it on the spot and are
+    saved to the config file. When none is running, they start one with those settings.
 
     config: \(Config.configFile.path)
     states: \(PetState.allCases.map(\.rawValue).joined(separator: ", "))
@@ -27,8 +33,15 @@ if let first = args.first {
     case "send":
         let message = args.dropFirst().joined(separator: " ")
         guard !message.isEmpty else { fputs("terminal-pet send: missing event\n", stderr); exit(2) }
-        if EventServer.send(message, path: EventServer.defaultPath) { exit(0) }
+        if let reply = EventServer.send(message, path: EventServer.defaultPath) {
+            print(reply)
+            exit(reply.hasPrefix("error") ? 1 : 0)
+        }
         fputs("terminal-pet: no pet listening on \(EventServer.defaultPath)\n", stderr)
+        exit(1)
+    case "status":
+        if let reply = EventServer.send("status", path: EventServer.defaultPath) { print(reply); exit(0) }
+        print("not running")
         exit(1)
     case "pets":
         let pets = Pet.available()
@@ -49,6 +62,7 @@ if let first = args.first {
     }
 }
 
+var overrides: [(String, String)] = []
 var i = 0
 while i < args.count {
     let flag = args[i]
@@ -58,14 +72,29 @@ while i < args.count {
         return args[i]
     }
     switch flag {
-    case "--pet": config.pet = value()
-    case "--scale": config.scale = Double(value()) ?? config.scale
-    case "--anchor": config.anchor = value()
+    case "--pet": config.pet = value(); overrides.append(("pet", config.pet))
+    case "--scale": config.scale = Double(value()) ?? config.scale; overrides.append(("scale", args[i]))
+    case "--anchor": config.anchor = value(); overrides.append(("anchor", config.anchor))
     default:
         fputs("terminal-pet: unknown argument '\(flag)'\n\n\(usage())\n", stderr)
         exit(2)
     }
     i += 1
+}
+
+// A pet is already running: apply the flags to it instead of starting a second one.
+if !overrides.isEmpty, EventServer.send("status", path: EventServer.defaultPath) != nil {
+    var failed = false
+    for (key, value) in overrides {
+        let reply = EventServer.send("\(key) \(value)", path: EventServer.defaultPath) ?? "error: lost connection"
+        print(reply)
+        if reply.hasPrefix("error") { failed = true }
+    }
+    exit(failed ? 1 : 0)
+}
+if EventServer.send("status", path: EventServer.defaultPath) != nil {
+    fputs("terminal-pet: already running (use --pet/--scale/--anchor to change it, or `terminal-pet send quit`)\n", stderr)
+    exit(1)
 }
 
 let pet: Pet

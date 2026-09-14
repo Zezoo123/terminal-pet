@@ -54,6 +54,22 @@ struct Config: Codable {
         terminals = try c.decodeIfPresent([String].self, forKey: .terminals) ?? terminals
     }
 
+    static let anchors = ["top-right", "top-left", "inside-top-right", "inside-top-left",
+                          "inside-bottom-right", "inside-bottom-left"]
+
+    /// Writes a single key into config.json, keeping every other key (and unknown ones) intact.
+    static func save(_ key: String, _ value: Any) throws {
+        var dict: [String: Any] = [:]
+        if let data = try? Data(contentsOf: configFile),
+           let existing = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            dict = existing
+        }
+        dict[key] = value
+        try FileManager.default.createDirectory(at: configDir, withIntermediateDirectories: true)
+        let data = try JSONSerialization.data(withJSONObject: dict, options: [.prettyPrinted, .sortedKeys])
+        try (data + Data("\n".utf8)).write(to: configFile)
+    }
+
     static func load() -> Config {
         guard let data = try? Data(contentsOf: configFile) else { return Config() }
         do {
