@@ -12,6 +12,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private(set) var state: PetState = .idle
     private var lastActivity = Date()
     private var lastHungerNag = Date.distantPast
+    /// After `state <name>` is forced from the shell, automatic idle/hungry/sleep transitions pause until this time.
+    private var manualUntil = Date.distantPast
     private var reactionTimer: Timer?
     private var bubbleTimer: Timer?
     private var pollTimer: Timer?
@@ -156,6 +158,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             guard let s = PetState(rawValue: arg) else {
                 return "error: state must be one of " + PetState.allCases.map(\.rawValue).joined(separator: ", ")
             }
+            manualUntil = Date().addingTimeInterval(8)
             setState(s)
         case "quit":
             DispatchQueue.main.async { NSApp.terminate(nil) }
@@ -255,7 +258,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func tick() {
         let idleFor = Date().timeIntervalSince(lastActivity)
-        if state == .idle || state == .hungry {
+        if Date() < manualUntil {
+            // a forced state stays put for a moment
+        } else if state == .idle || state == .hungry {
             if idleFor > config.idleAfter {
                 setState(.sleeping)
             } else if stats.isHungry, state == .idle {
