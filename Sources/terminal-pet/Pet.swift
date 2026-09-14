@@ -1,7 +1,16 @@
 import Foundation
 
 enum PetState: String, CaseIterable {
-    case idle, working, happy, sad, sleeping
+    case idle, working, happy, sad, sleeping, eating, hungry
+
+    /// What to show when a pet has no animation for a state.
+    var fallback: PetState? {
+        switch self {
+        case .idle: return nil
+        case .eating: return .happy
+        default: return .idle
+        }
+    }
 }
 
 /// Optional pet.json inside a pet directory.
@@ -20,9 +29,14 @@ final class Pet {
         self.animations = animations
     }
 
-    /// Every state falls back to `idle` when the pet has no animation for it.
+    /// Walks the fallback chain (eating -> happy -> idle, everything else -> idle).
     func animation(for state: PetState) -> Animation? {
-        animations[state] ?? animations[.idle]
+        var s: PetState? = state
+        while let current = s {
+            if let a = animations[current] { return a }
+            s = current.fallback
+        }
+        return animations[.idle]
     }
 
     enum LoadError: Error, CustomStringConvertible {

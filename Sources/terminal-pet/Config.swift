@@ -5,6 +5,8 @@ import Foundation
 struct Config: Codable {
     /// Pet to show: a name looked up in the pet search paths, a directory, or a single .gif file.
     var pet: String = "blob"
+    /// What you call it. Defaults to the pet's own name.
+    var name: String? = nil
     /// Integer-ish multiplier applied to the sprite size (pixel art looks best at 2-4).
     var scale: Double = 3
     /// Where the pet sits relative to the terminal window:
@@ -35,7 +37,7 @@ struct Config: Codable {
     static var configFile: URL { configDir.appendingPathComponent("config.json") }
 
     enum CodingKeys: String, CodingKey {
-        case pet, scale, anchor, offsetX, offsetY, idleAfter, reactionSeconds, pollHz, smooth, terminals
+        case pet, name, scale, anchor, offsetX, offsetY, idleAfter, reactionSeconds, pollHz, smooth, terminals
     }
 
     init() {}
@@ -43,6 +45,7 @@ struct Config: Codable {
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         pet = try c.decodeIfPresent(String.self, forKey: .pet) ?? pet
+        name = try c.decodeIfPresent(String.self, forKey: .name) ?? name
         scale = try c.decodeIfPresent(Double.self, forKey: .scale) ?? scale
         anchor = try c.decodeIfPresent(String.self, forKey: .anchor) ?? anchor
         offsetX = try c.decodeIfPresent(Double.self, forKey: .offsetX) ?? offsetX

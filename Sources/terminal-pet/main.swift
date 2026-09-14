@@ -13,9 +13,14 @@ func usage() -> String {
       terminal-pet --pet NAME|DIR|FILE.gif    switch pet (live if one is running, else start with it)
       terminal-pet --scale N         change size
       terminal-pet --anchor POS      change position: \(Config.anchors.joined(separator: " | "))
-      terminal-pet status            show what the running pet is doing
+      terminal-pet feed              feed it (hunger runs out over ~8 hours)
+      terminal-pet poke              pet it
+      terminal-pet say <text>        make it say something (great from scripts and CI)
+      terminal-pet name <name>       give it a name
+      terminal-pet stats             level, xp, hunger, streaks, age
+      terminal-pet status            what the running pet is doing right now
       terminal-pet pets              list pets found in the search paths
-      terminal-pet send <event...>   raw event: preexec <cmd> | precmd <status> | poke | state <name> | quit
+      terminal-pet send <event...>   raw event: preexec <cmd> | precmd <status> | state <name> | quit
       terminal-pet socket            print the socket path
       terminal-pet --help | --version
 
@@ -26,6 +31,7 @@ func usage() -> String {
     states: \(PetState.allCases.map(\.rawValue).joined(separator: ", "))
     """
 }
+
 
 var args = Array(CommandLine.arguments.dropFirst())
 var config = Config.load()
@@ -45,6 +51,25 @@ if let first = args.first {
         if let reply = EventServer.send("status", path: EventServer.defaultPath) { print(reply); exit(0) }
         print("not running")
         exit(1)
+    case "feed", "poke", "say", "name":
+        let message = ([first] + args.dropFirst()).joined(separator: " ")
+        guard let reply = EventServer.send(message, path: EventServer.defaultPath) else {
+            print("not running")
+            exit(1)
+        }
+        print(reply)
+        exit(reply.hasPrefix("error") ? 1 : 0)
+    case "stats":
+        guard let reply = EventServer.send("stats", path: EventServer.defaultPath) else {
+            print("not running")
+            exit(1)
+        }
+        let pairs = reply.split(separator: " ").map { $0.split(separator: "=", maxSplits: 1).map(String.init) }
+        let width = pairs.map { $0[0].count }.max() ?? 0
+        for p in pairs where p.count == 2 {
+            print(p[0].padding(toLength: width, withPad: " ", startingAt: 0) + "  " + p[1])
+        }
+        exit(0)
     case "stop":
         if let reply = EventServer.send("quit", path: EventServer.defaultPath) { print(reply); exit(0) }
         print("not running")
@@ -127,7 +152,9 @@ if !isDaemonChild {
 // Default: relaunch ourselves detached so the shell gets its prompt back.
 if !foreground && !isDaemonChild {
     let logURL = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Logs/terminal-pet.log")
-    FileManager.default.createFile(atPath: logURL.path, contents: nil)
+    if !FileManager.default.fileExists(atPath: logURL.path) {
+        FileManager.default.createFile(atPath: logURL.path, contents: nil)
+    }
     let child = Process()
     child.executableURL = Bundle.main.executableURL
     child.arguments = ["--foreground"] + overrides.flatMap { ["--\($0.0)", $0.1] }
