@@ -1,9 +1,9 @@
 {
   "pet": "blob",
   "scale": 3,
-  "anchor": "top-right",
-  "offsetX": 24,
-  "offsetY": 0,
+  "anchor": "inside-bottom-right",
+  "offsetX": 16,
+  "offsetY": 16,
   "idleAfter": 90,
   "reactionSeconds": 2.5,
   "pollHz": 30,

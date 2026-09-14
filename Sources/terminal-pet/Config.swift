@@ -10,9 +10,9 @@ struct Config: Codable {
     /// Where the pet sits relative to the terminal window:
     /// top-right | top-left (perched on the title bar)
     /// inside-top-right | inside-top-left | inside-bottom-right | inside-bottom-left
-    var anchor: String = "top-right"
-    var offsetX: Double = 24
-    var offsetY: Double = 0
+    var anchor: String = "inside-bottom-right"
+    var offsetX: Double = 16
+    var offsetY: Double = 16
     /// Seconds without shell activity before the pet falls asleep.
     var idleAfter: Double = 90
     /// How long a happy/sad reaction is shown before returning to idle.

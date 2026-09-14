@@ -2,7 +2,7 @@
 
 A little animated companion that lives on top of your terminal window and reacts to what you do in the shell.
 
-- Sits on the title bar of whichever terminal window is in front, and follows it when you move or resize it.
+- Sits in the corner of whichever terminal window is in front (or perched on its title bar, if you prefer), and follows it when you move or resize it.
 - Hides when the terminal isn't the active app, so it never gets in the way.
 - Watches your zsh session: **working** while a command runs, **happy** when it succeeds, **sad** when it fails, **sleeping** when you've been away for a while. Click it to make it happy.
 - Fully customisable: drop in your own animated GIFs (or APNGs) for each state, or point it at a single GIF and it'll just loop that.
@@ -78,15 +78,15 @@ Pick one with `"pet": "cat"` in the config or `terminal-pet --pet cat`. `termina
 |-------------------|---------------|---------|
 | `pet`             | `"blob"`      | pet name, a directory, or a single `.gif` file |
 | `scale`           | `3`           | size multiplier for the sprite |
-| `anchor`          | `"top-right"` | `top-right`, `top-left` (perched on the title bar), or `inside-top-right`, `inside-top-left`, `inside-bottom-right`, `inside-bottom-left` |
-| `offsetX` / `offsetY` | `24` / `0` | nudge from the anchor, in points |
+| `anchor`          | `"inside-bottom-right"` | `inside-bottom-right`, `inside-bottom-left`, `inside-top-right`, `inside-top-left` (over the window content), or `top-right`, `top-left` (perched on the title bar) |
+| `offsetX` / `offsetY` | `16` / `16` | nudge from the anchor, in points |
 | `idleAfter`       | `90`          | seconds of inactivity before it falls asleep |
 | `reactionSeconds` | `2.5`         | how long happy/sad is shown |
 | `pollHz`          | `30`          | how often it checks where the terminal window is |
 | `smooth`          | `false`       | bilinear scaling instead of crisp pixels (for photo-like GIFs) |
 | `terminals`       | see example   | app names or bundle IDs treated as terminals |
 
-Flags override the file for one run: `terminal-pet --pet ~/Downloads/cat.gif --scale 1 --anchor inside-bottom-right`.
+Flags override the file for one run: `terminal-pet --pet ~/Downloads/cat.gif --scale 1 --anchor top-right`.
 
 ## Making your own pet
 
