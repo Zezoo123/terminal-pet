@@ -1,0 +1,11 @@
+{
+  "author" : "terminal-pet",
+  "name" : "Cat",
+  "states" : {
+    "happy" : "happy.gif",
+    "idle" : "idle.gif",
+    "sad" : "sad.gif",
+    "sleeping" : "sleeping.gif",
+    "working" : "working.gif"
+  }
+}
