@@ -4,6 +4,7 @@
   "states" : {
     "eating" : "eating.gif",
     "happy" : "happy.gif",
+    "hungry" : "hungry.gif",
     "idle" : "idle.gif",
     "sad" : "sad.gif",
     "sleeping" : "sleeping.gif",

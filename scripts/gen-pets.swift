@@ -144,6 +144,28 @@ func drawFood(_ c: Canvas, _ kind: Food, x: Int, y: Int, stage: Int) {
     }
 }
 
+/// A 9x7 thought bubble at (x, y) with a snack inside, plus two dots trailing toward (dotX, dotY).
+func drawThought(_ c: Canvas, _ kind: Food, x: Int, y: Int, dots: [(Int, Int)], outline: Color) {
+    let bubble = [
+        ".ooooooo.",
+        "owwwwwwwo",
+        "owwwwwwwo",
+        "owwwwwwwo",
+        "owwwwwwwo",
+        "owwwwwwwo",
+        ".ooooooo.",
+    ]
+    c.blit(bubble, x, y, ["o": outline, "w": white])
+    switch kind {
+    case .cookie: drawFood(c, .cookie, x: x + 3, y: y + 2, stage: 0)
+    case .fish: drawFood(c, .fish, x: x + 2, y: y + 2, stage: 0)
+    case .candy: drawFood(c, .candy, x: x + 2, y: y + 2, stage: 0)
+    case .battery: drawFood(c, .battery, x: x + 3, y: y + 2, stage: 1)
+    case .seed: drawFood(c, .seed, x: x + 4, y: y + 2, stage: 0)
+    }
+    for (dx, dy) in dots { c.set(dx, dy, outline) }
+}
+
 // MARK: - Pet definitions
 
 struct Frame { let image: CGImage; let delay: Double }
@@ -190,11 +212,11 @@ func blob() -> PetDef {
         "....dddddddddddddd....",
     ])
     func f(_ delay: Double, squished: Bool = false, lift: Int = 0, eyes: Eyes = .open(0), mouth: Mouth = .smile,
-           tear: Int? = nil, zzz: Int = 0, sweat: Bool = false, food: Int? = nil) -> Frame {
+           tear: Int? = nil, zzz: Int = 0, sweat: Bool = false, food: Int? = nil, thought: Bool = false, shift: Int = 0) -> Frame {
         frame(delay) { c in
             let shape = squished ? squish : normal
             let bw = shape[0].count, bh = shape.count
-            let ox = (size - bw) / 2, oy = size - bh - lift
+            let ox = (size - bw) / 2 + shift, oy = size - bh - lift
             c.blit(shape, ox, oy, pal)
             let cx = ox + bw / 2, eyeY = oy + 4
             let lx = cx - 4, rx = cx + 2
@@ -205,6 +227,7 @@ func blob() -> PetDef {
             if sweat { c.rect(ox + bw - 3, oy + 1, 1, 2, tearBlue) }
             drawZzz(c, zzz, x: 17, y: oy - 4, color: outline)
             if let st = food { drawFood(c, .cookie, x: ox - 2, y: oy + 6, stage: st) }
+            if thought { drawThought(c, .cookie, x: 1, y: 1, dots: [(9, 8), (10, 9)], outline: outline) }
         }
     }
     return PetDef(name: "Blob", states: [
@@ -223,6 +246,9 @@ func blob() -> PetDef {
         "eating": [f(0.25, mouth: .open, food: 0), f(0.25, squished: true, mouth: .flat, food: 0),
                    f(0.25, mouth: .open, food: 1), f(0.25, squished: true, mouth: .flat, food: 1),
                    f(0.3, eyes: .happy, mouth: .open, food: 2), f(0.5, squished: true, eyes: .happy, mouth: .smile, food: 2)],
+        "hungry": [f(0.6, eyes: .sad, mouth: .flat, thought: true), f(0.12, eyes: .sad, mouth: .flat, thought: true, shift: -1),
+                   f(0.12, eyes: .sad, mouth: .flat, thought: true, shift: 1), f(0.6, eyes: .sad, mouth: .flat, thought: true),
+                   f(0.5, squished: true, eyes: .closed, mouth: .flat)],
     ])
 }
 
@@ -260,11 +286,11 @@ func cat() -> PetDef {
         "..kkkkkkkkkkkkkkkkkk..",
     ])
     func f(_ delay: Double, tailUp: Bool = true, lift: Int = 0, eyes: Eyes = .open(0), mouth: Mouth = .smile,
-           tear: Int? = nil, zzz: Int = 0, sweat: Bool = false, food: Int? = nil) -> Frame {
+           tear: Int? = nil, zzz: Int = 0, sweat: Bool = false, food: Int? = nil, thought: Bool = false, shift: Int = 0) -> Frame {
         frame(delay) { c in
             let shape = tailUp ? bodyTailUp : bodyTailDown
             let bw = shape[0].count, bh = shape.count
-            let ox = (size - bw) / 2, oy = size - bh - lift
+            let ox = (size - bw) / 2 + shift, oy = size - bh - lift
             c.blit(shape, ox, oy, pal)
             let cx = ox + 9, eyeY = oy + 5
             let lx = cx - 4, rx = cx + 2
@@ -280,6 +306,7 @@ func cat() -> PetDef {
             if sweat { c.rect(ox + bw - 6, oy + 2, 1, 2, tearBlue) }
             drawZzz(c, zzz, x: 17, y: oy - 3, color: dark)
             if let st = food { drawFood(c, .fish, x: ox - 2, y: oy + 8, stage: st) }
+            if thought { drawThought(c, .fish, x: 0, y: 0, dots: [(9, 7), (10, 8)], outline: dark) }
         }
     }
     return PetDef(name: "Cat", states: [
@@ -296,6 +323,9 @@ func cat() -> PetDef {
         "eating": [f(0.25, mouth: .open, food: 0), f(0.25, tailUp: false, mouth: .flat, food: 0),
                    f(0.25, mouth: .open, food: 1), f(0.25, tailUp: false, mouth: .flat, food: 1),
                    f(0.3, eyes: .happy, mouth: .open, food: 2), f(0.5, tailUp: false, eyes: .happy, food: 2)],
+        "hungry": [f(0.6, tailUp: false, eyes: .sad, mouth: .flat, thought: true), f(0.12, tailUp: false, eyes: .sad, mouth: .flat, thought: true, shift: -1),
+                   f(0.12, tailUp: false, eyes: .sad, mouth: .flat, thought: true, shift: 1), f(0.6, tailUp: false, eyes: .sad, mouth: .flat, thought: true),
+                   f(0.5, tailUp: false, eyes: .closed, mouth: .flat)],
     ])
 }
 
@@ -331,11 +361,11 @@ func ghost() -> PetDef {
         ".kkk.kkkkkkk.kk.",
     ])
     func f(_ delay: Double, alt: Bool = false, lift: Int = 0, eyes: Eyes = .open(0), mouth: Mouth = .open,
-           tear: Int? = nil, zzz: Int = 0, sweat: Bool = false, food: Int? = nil) -> Frame {
+           tear: Int? = nil, zzz: Int = 0, sweat: Bool = false, food: Int? = nil, thought: Bool = false, shift: Int = 0) -> Frame {
         frame(delay) { c in
             let shape = alt ? waveB : waveA
             let bw = shape[0].count, bh = shape.count
-            let ox = (size - bw) / 2, oy = size - bh - 2 - lift   // floats a little off the ground
+            let ox = (size - bw) / 2 + shift, oy = size - bh - 2 - lift   // floats a little off the ground
             c.blit(shape, ox, oy, pal)
             let cx = ox + 8, eyeY = oy + 5
             let lx = cx - 4, rx = cx + 2
@@ -348,6 +378,7 @@ func ghost() -> PetDef {
             if sweat { c.rect(ox + bw - 3, oy + 3, 1, 2, tearBlue) }
             drawZzz(c, zzz, x: 17, y: oy - 3, color: edge)
             if let st = food { drawFood(c, .candy, x: ox - 3, y: oy + 9, stage: st) }
+            if thought { drawThought(c, .candy, x: 0, y: 0, dots: [(9, 7), (10, 8)], outline: edge) }
         }
     }
     return PetDef(name: "Ghost", states: [
@@ -363,6 +394,9 @@ func ghost() -> PetDef {
         "eating": [f(0.25, mouth: .open, food: 0), f(0.25, alt: true, lift: 1, mouth: .flat, food: 0),
                    f(0.25, mouth: .open, food: 1), f(0.25, alt: true, lift: 1, mouth: .flat, food: 1),
                    f(0.3, eyes: .happy, mouth: .open, food: 2), f(0.5, alt: true, lift: 1, eyes: .happy, mouth: .smile, food: 2)],
+        "hungry": [f(0.6, lift: -2, eyes: .sad, mouth: .flat, thought: true), f(0.12, alt: true, lift: -2, eyes: .sad, mouth: .flat, thought: true, shift: -1),
+                   f(0.12, lift: -2, eyes: .sad, mouth: .flat, thought: true, shift: 1), f(0.6, alt: true, lift: -2, eyes: .sad, mouth: .flat, thought: true),
+                   f(0.5, lift: -2, eyes: .closed, mouth: .flat)],
     ])
 }
 
@@ -405,11 +439,11 @@ func robot() -> PetDef {
     ])
     enum Face { case eyes(Eyes, Mouth), dots(Int), off }
     func f(_ delay: Double, up: Bool = false, lift: Int = 0, face: Face = .eyes(.open(0), .flat), light: Color? = nil,
-           spark: Bool = false, zzz: Int = 0, food: Int? = nil) -> Frame {
+           spark: Bool = false, zzz: Int = 0, food: Int? = nil, thought: Bool = false, shift: Int = 0) -> Frame {
         frame(delay) { c in
             let shape = up ? armsUp : armsDown
             let bw = shape[0].count, bh = shape.count
-            let ox = (size - bw) / 2, oy = size - bh - lift
+            let ox = (size - bw) / 2 + shift, oy = size - bh - lift
             c.blit(shape, ox, oy, pal)
             c.rect(ox + 8, oy - 1, 3, 2, light ?? dark)          // antenna bulb
             c.set(ox + 9, oy - 1, light == nil ? dark : white)
@@ -430,6 +464,7 @@ func robot() -> PetDef {
             }
             drawZzz(c, zzz, x: 17, y: oy - 4, color: dark)
             if let st = food { drawFood(c, .battery, x: ox - 2, y: oy + 7, stage: st) }
+            if thought { drawThought(c, .battery, x: 14, y: 0, dots: [(13, 6)], outline: dark) }
         }
     }
     let green = rgb(74, 222, 128), red = rgb(248, 113, 113), amber = rgb(251, 191, 36)
@@ -445,6 +480,9 @@ func robot() -> PetDef {
         "eating": [f(0.25, face: .eyes(.open(0), .open), light: amber, food: 0), f(0.25, face: .eyes(.open(0), .flat), light: green, food: 0),
                    f(0.25, face: .eyes(.open(0), .open), light: amber, food: 1), f(0.25, face: .eyes(.open(0), .flat), light: green, food: 1),
                    f(0.3, up: true, face: .eyes(.happy, .smile), light: green, food: 2), f(0.5, up: true, face: .eyes(.happy, .smile), light: green, food: 2)],
+        "hungry": [f(0.6, face: .eyes(.sad, .flat), light: red, thought: true), f(0.12, face: .eyes(.sad, .flat), thought: true, shift: -1),
+                   f(0.12, face: .eyes(.sad, .flat), light: red, thought: true, shift: 1), f(0.6, face: .eyes(.sad, .flat), thought: true),
+                   f(0.5, face: .off, light: red)],
     ])
 }
 
@@ -473,10 +511,10 @@ func chick() -> PetDef {
     let wingDown = ["kk", "ky", "kk"]
     let wingUp = [".k", "kk", "ky"]
     func f(_ delay: Double, flap: Bool = false, lift: Int = 0, eyes: Eyes = .open(0), mouth: Mouth = .none,
-           tear: Int? = nil, zzz: Int = 0, sweat: Bool = false, food: Int? = nil) -> Frame {
+           tear: Int? = nil, zzz: Int = 0, sweat: Bool = false, food: Int? = nil, thought: Bool = false, shift: Int = 0) -> Frame {
         frame(delay) { c in
             let bw = body[0].count, bh = body.count
-            let ox = (size - bw) / 2, oy = size - bh - lift
+            let ox = (size - bw) / 2 + shift, oy = size - bh - lift
             c.blit(body, ox, oy, pal)
             // tuft
             c.set(ox + 9, oy - 1, dark); c.set(ox + 10, oy - 2, dark)
@@ -495,6 +533,7 @@ func chick() -> PetDef {
             if sweat { c.rect(ox + bw - 4, oy + 2, 1, 2, tearBlue) }
             drawZzz(c, zzz, x: 17, y: oy - 3, color: dark)
             if let st = food { drawFood(c, .seed, x: ox - 1, y: oy + 10, stage: st) }
+            if thought { drawThought(c, .seed, x: 0, y: 0, dots: [(9, 7), (10, 8)], outline: dark) }
         }
     }
     return PetDef(name: "Chick", states: [
@@ -509,12 +548,15 @@ func chick() -> PetDef {
         "eating": [f(0.25, mouth: .open, food: 0), f(0.25, lift: 1, food: 0),
                    f(0.25, mouth: .open, food: 1), f(0.25, lift: 1, food: 1),
                    f(0.3, flap: true, eyes: .happy, mouth: .open, food: 2), f(0.5, eyes: .happy, food: 2)],
+        "hungry": [f(0.6, eyes: .sad, mouth: .flat, thought: true), f(0.12, eyes: .sad, mouth: .flat, thought: true, shift: -1),
+                   f(0.12, eyes: .sad, mouth: .flat, thought: true, shift: 1), f(0.6, eyes: .sad, mouth: .flat, thought: true),
+                   f(0.5, eyes: .closed, mouth: .flat)],
     ])
 }
 
 // MARK: - Output
 
-let stateOrder = ["idle", "working", "happy", "sad", "sleeping", "eating"]
+let stateOrder = ["idle", "working", "happy", "sad", "sleeping", "eating", "hungry"]
 let pets = [blob(), cat(), ghost(), robot(), chick()]
 
 func writeGIF(_ frames: [Frame], to url: URL) {

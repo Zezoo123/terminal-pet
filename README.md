@@ -11,7 +11,7 @@ A little animated Tamagotchi-like companion that lives on top of your terminal w
 </p>
 
 <p align="center">
-  <img src="docs/showcase.gif" alt="The bundled pets (blob, cat, ghost, robot, chick) cycling through idle, working, happy, sad, sleeping and eating" width="520">
+  <img src="docs/showcase.gif" alt="The bundled pets (blob, cat, ghost, robot, chick) cycling through idle, working, happy, sad, sleeping, eating and hungry" width="520">
 </p>
 
 - Sits in the corner of whichever terminal window is in front (or perched on its title bar, if you prefer), and follows it when you move or resize it.
@@ -103,7 +103,7 @@ pet quit
 
 | | |
 |---|---|
-| **Hunger** | Full after feeding, empty about 8 hours later. Below 25% it looks hungry and asks for food every few minutes. `pet feed` (+5 xp). |
+| **Hunger** | Full after feeding, empty about 8 hours later. Below 25% it looks hungry (daydreaming about its favourite snack) and asks for food every few minutes. `pet feed` (+5 xp). |
 | **XP and levels** | +1 xp per successful command, +5 per meal. Level 2 at 20 xp, 3 at 80, 4 at 180, 5 at 320, and so on. It announces level-ups. |
 | **Streaks** | Consecutive successful commands. It celebrates 5, 10, 25, 50, 100... and mourns a lost streak of 5 or more. |
 | **Speech** | Reacts with short bubbles. `pet say "tests passed"` from any script, or `terminal-pet say ...` from bash, Makefiles, CI. |
