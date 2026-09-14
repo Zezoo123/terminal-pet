@@ -36,7 +36,7 @@ enum ShellSetup {
         }
 
         let home = FileManager.default.homeDirectoryForCurrentUser
-        let bin = (Bundle.main.executableURL?.resolvingSymlinksInPath().deletingLastPathComponent().path) ?? ""
+        let bin = (Bundle.main.executableURL.map { stableHomebrewPath($0.resolvingSymlinksInPath()) }?.deletingLastPathComponent().path) ?? ""
         let onPath = (ProcessInfo.processInfo.environment["PATH"] ?? "").split(separator: ":").map(String.init).contains(bin)
 
         let target: URL
@@ -96,12 +96,21 @@ enum ShellSetup {
     /// Where the shell plugins live: <prefix>/share/terminal-pet next to an installed binary, or ./shell in a checkout.
     static func shareDir() -> URL? {
         guard let exe = Bundle.main.executableURL?.resolvingSymlinksInPath() else { return nil }
-        let bin = exe.deletingLastPathComponent()
+        let bin = stableHomebrewPath(exe).deletingLastPathComponent()
         let candidates = [
             bin.appendingPathComponent("../share/terminal-pet").standardized,
             bin.appendingPathComponent("../../../shell").standardized,
         ]
         return candidates.first { FileManager.default.fileExists(atPath: $0.appendingPathComponent("terminal-pet.plugin.zsh").path) }
+    }
+
+    /// Homebrew installs into a versioned Cellar directory; the opt/ symlink survives upgrades, so write that.
+    /// /opt/homebrew/Cellar/terminal-pet/0.2.1/bin/terminal-pet -> /opt/homebrew/opt/terminal-pet/bin/terminal-pet
+    static func stableHomebrewPath(_ url: URL) -> URL {
+        let parts = url.pathComponents
+        guard let i = parts.firstIndex(of: "Cellar"), i + 2 < parts.count else { return url }
+        let stable = parts[..<i] + ["opt", parts[i + 1]] + parts[(i + 3)...]
+        return URL(fileURLWithPath: stable.joined(separator: "/").replacingOccurrences(of: "//", with: "/"))
     }
 
     /// "$HOME/..." expands inside double quotes; "~/..." does not.
