@@ -26,9 +26,18 @@ struct Config: Codable {
     /// App names or bundle identifiers that count as a terminal.
     var terminals: [String] = Config.defaultTerminals
 
+    /// App names (matched against the running app's localized name) and bundle identifiers, either works.
     static let defaultTerminals = [
-        "Terminal", "iTerm2", "iTerm", "kitty", "Alacritty", "WezTerm",
-        "Ghostty", "Warp", "Hyper", "Tabby", "Rio",
+        "Terminal", "com.apple.Terminal",
+        "iTerm2", "iTerm", "com.googlecode.iterm2",
+        "kitty", "net.kovidgoyal.kitty",
+        "Alacritty", "org.alacritty",
+        "WezTerm", "com.github.wez.wezterm",
+        "Ghostty", "com.mitchellh.ghostty",
+        "Warp", "dev.warp.Warp-Stable",
+        "Hyper", "co.zeit.hyper",
+        "Tabby", "org.tabby",
+        "Rio", "com.raphaelamorim.rio",
     ]
 
     static var configDir: URL {
