@@ -11,7 +11,7 @@ build:
 
 ## Run from the repo without installing (uses ./pets).
 run: build
-	TERMINAL_PET_PETS_DIR=$(CURDIR)/pets swift run terminal-pet
+	TERMINAL_PET_PETS_DIR=$(CURDIR)/pets swift run terminal-pet --foreground
 
 release:
 	swift build -c release
@@ -27,7 +27,7 @@ install: release
 	@echo "installed to $(BIN)/terminal-pet"
 	@echo "add to ~/.zshrc:   source $(SHARE)/terminal-pet.plugin.zsh"
 	@echo "config lives at:   $(CONFIG)/config.json"
-	@echo "start it with:     $(BIN)/terminal-pet &   (or: make launchd)"
+	@echo "start it with:     terminal-pet          (or: make launchd to start at login)"
 
 uninstall: unlaunchd
 	rm -f "$(BIN)/terminal-pet"

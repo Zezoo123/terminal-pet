@@ -7,7 +7,9 @@ func usage() -> String {
     terminal-pet \(version) - a little animated companion that sits on your terminal window
 
     usage:
-      terminal-pet                   run the pet
+      terminal-pet [start]           start the pet in the background (detached from this shell)
+      terminal-pet stop              stop it
+      terminal-pet --foreground      run attached to this shell (Ctrl-C to quit); used by launchd
       terminal-pet --pet NAME|DIR|FILE.gif    switch pet (live if one is running, else start with it)
       terminal-pet --scale N         change size
       terminal-pet --anchor POS      change position: \(Config.anchors.joined(separator: " | "))
@@ -43,6 +45,12 @@ if let first = args.first {
         if let reply = EventServer.send("status", path: EventServer.defaultPath) { print(reply); exit(0) }
         print("not running")
         exit(1)
+    case "stop":
+        if let reply = EventServer.send("quit", path: EventServer.defaultPath) { print(reply); exit(0) }
+        print("not running")
+        exit(1)
+    case "start":
+        args.removeFirst()
     case "pets":
         let pets = Pet.available()
         if pets.isEmpty { print("no pets found in:\n" + Pet.searchPaths().map { "  " + $0.path }.joined(separator: "\n")) }
@@ -63,6 +71,7 @@ if let first = args.first {
 }
 
 var overrides: [(String, String)] = []
+var foreground = false
 var i = 0
 while i < args.count {
     let flag = args[i]
@@ -75,6 +84,7 @@ while i < args.count {
     case "--pet": config.pet = value(); overrides.append(("pet", config.pet))
     case "--scale": config.scale = Double(value()) ?? config.scale; overrides.append(("scale", args[i]))
     case "--anchor": config.anchor = value(); overrides.append(("anchor", config.anchor))
+    case "--foreground", "-f": foreground = true
     default:
         fputs("terminal-pet: unknown argument '\(flag)'\n\n\(usage())\n", stderr)
         exit(2)
@@ -93,7 +103,7 @@ if !overrides.isEmpty, EventServer.send("status", path: EventServer.defaultPath)
     exit(failed ? 1 : 0)
 }
 if EventServer.send("status", path: EventServer.defaultPath) != nil {
-    fputs("terminal-pet: already running (use --pet/--scale/--anchor to change it, or `terminal-pet send quit`)\n", stderr)
+    fputs("terminal-pet: already running (use --pet/--scale/--anchor to change it, or `terminal-pet stop`)\n", stderr)
     exit(1)
 }
 
@@ -104,6 +114,65 @@ do {
     fputs("terminal-pet: \(error)\n", stderr)
     exit(1)
 }
+
+let isDaemonChild = ProcessInfo.processInfo.environment["TERMINAL_PET_DAEMON"] != nil
+
+// Flags given at start are remembered, same as when they are applied to a running pet.
+if !isDaemonChild {
+    for (key, value) in overrides {
+        try? Config.save(key, key == "scale" ? (Double(value) ?? config.scale) as Any : value)
+    }
+}
+
+// Default: relaunch ourselves detached so the shell gets its prompt back.
+if !foreground && !isDaemonChild {
+    let logURL = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Logs/terminal-pet.log")
+    FileManager.default.createFile(atPath: logURL.path, contents: nil)
+    let child = Process()
+    child.executableURL = Bundle.main.executableURL
+    child.arguments = ["--foreground"] + overrides.flatMap { ["--\($0.0)", $0.1] }
+    var env = ProcessInfo.processInfo.environment
+    env["TERMINAL_PET_DAEMON"] = "1"
+    child.environment = env
+    child.standardInput = FileHandle.nullDevice
+    if let log = try? FileHandle(forWritingTo: logURL) {
+        log.seekToEndOfFile()
+        child.standardOutput = log
+        child.standardError = log
+    }
+    do {
+        try child.run()
+    } catch {
+        fputs("terminal-pet: could not start background process: \(error)\n", stderr)
+        exit(1)
+    }
+    // Only report success once the child is actually answering on the socket.
+    for _ in 0..<100 {
+        usleep(50_000)
+        if EventServer.send("status", path: EventServer.defaultPath) != nil {
+            print("terminal-pet started (\(pet.name), pid \(child.processIdentifier)). Log: \(logURL.path)")
+            exit(0)
+        }
+        if !child.isRunning {
+            fputs("terminal-pet: background process exited, see \(logURL.path)\n", stderr)
+            exit(1)
+        }
+    }
+    fputs("terminal-pet: background process did not come up, see \(logURL.path)\n", stderr)
+    exit(1)
+}
+
+// One instance per user: hold an exclusive lock for as long as we run.
+let lockPath = "/tmp/terminal-pet-\(getuid()).lock"
+let lockFD = open(lockPath, O_CREAT | O_RDWR, 0o600)
+if lockFD < 0 || flock(lockFD, LOCK_EX | LOCK_NB) != 0 {
+    fputs("terminal-pet: already running\n", stderr)
+    exit(1)
+}
+if isDaemonChild {
+    setsid()   // own session: closing the terminal that started us must not take us down
+}
+signal(SIGHUP, SIG_IGN)
 
 let app = NSApplication.shared
 app.setActivationPolicy(.accessory) // no Dock icon, no menu bar

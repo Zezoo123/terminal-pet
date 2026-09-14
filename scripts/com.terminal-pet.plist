@@ -7,6 +7,7 @@
     <key>ProgramArguments</key>
     <array>
         <string>@BIN@</string>
+        <string>--foreground</string>
     </array>
     <key>RunAtLoad</key>
     <true/>

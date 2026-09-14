@@ -25,10 +25,11 @@ Then add the plugin to `~/.zshrc`:
 source ~/.local/share/terminal-pet/terminal-pet.plugin.zsh
 ```
 
-Start the pet:
+Start the pet (it detaches and gives you the prompt back):
 
 ```bash
-~/.local/bin/terminal-pet &     # or `make launchd` to start it at login
+terminal-pet            # or `make launchd` to start it at login
+terminal-pet stop       # when you've had enough
 ```
 
 Open a new zsh session, run a command, and watch it react.
@@ -36,7 +37,7 @@ Open a new zsh session, run a command, and watch it react.
 ### Try it without installing
 
 ```bash
-make run
+make run                # runs in the foreground with the repo's pets, Ctrl-C to quit
 ```
 
 ## Shell integration
