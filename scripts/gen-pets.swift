@@ -117,7 +117,7 @@ func drawTear(_ c: Canvas, x: Int, y: Int, step: Int?) {
     if let t = step { c.rect(x, y + t, 1, 2, tearBlue) }
 }
 
-enum Food { case cookie, fish, candy, battery, seed }
+enum Food { case cookie, fish, candy, battery, seed, bone, fly }
 /// A snack held beside the mouth at (x, y). stage 0 = whole, 1 = half eaten, 2+ = gone.
 func drawFood(_ c: Canvas, _ kind: Food, x: Int, y: Int, stage: Int) {
     guard stage < 2 else { return }
@@ -141,6 +141,13 @@ func drawFood(_ c: Canvas, _ kind: Food, x: Int, y: Int, stage: Int) {
     case .seed:
         let hull = rgb(120, 72, 32)
         c.blit(half ? ["h"] : ["h.", "hh", ".h"], x, y, ["h": hull])
+    case .bone:
+        let bone = rgb(241, 245, 249), shade = rgb(148, 163, 184)
+        c.blit(half ? ["bb.", "bbb", "bb."] : ["bb..bb", "bbbbbb", "bb..bb"], x, y, ["b": bone])
+        if !half { c.set(x + 2, y + 1, shade); c.set(x + 3, y + 1, shade) }
+    case .fly:
+        let wing = rgb(203, 213, 225)
+        c.blit(half ? ["k"] : ["wkw", ".k."], x, y, ["k": ink, "w": wing])
     }
 }
 
@@ -162,6 +169,8 @@ func drawThought(_ c: Canvas, _ kind: Food, x: Int, y: Int, dots: [(Int, Int)], 
     case .candy: drawFood(c, .candy, x: x + 2, y: y + 2, stage: 0)
     case .battery: drawFood(c, .battery, x: x + 3, y: y + 2, stage: 1)
     case .seed: drawFood(c, .seed, x: x + 4, y: y + 2, stage: 0)
+    case .bone: drawFood(c, .bone, x: x + 2, y: y + 2, stage: 0)
+    case .fly: drawFood(c, .fly, x: x + 3, y: y + 2, stage: 0)
     }
     for (dx, dy) in dots { c.set(dx, dy, outline) }
 }
@@ -554,10 +563,228 @@ func chick() -> PetDef {
     ])
 }
 
+
+// --- Dog ------------------------------------------------------------------
+
+func dog() -> PetDef {
+    let fur = rgb(222, 170, 100), dark = rgb(101, 67, 33), ear = rgb(176, 120, 60), snout = rgb(250, 232, 200), belly = rgb(250, 232, 200)
+    let pal: [Character: Color] = ["k": dark, "o": fur, "e": ear, "s": snout, "w": belly]
+    let head = [
+        "......kkkkkkkkkk......",
+        ".....kooooooooook.....",
+        ".kkkkkooooooooookkkkk.",
+        ".keeekooooooooookeeek.",
+        ".keeekooooooooookeeek.",
+        ".keeekooooooooookeeek.",
+        ".keeekooooooooookeeek.",
+        ".keeekooooooooookeeek.",
+        ".keeekoossssssookeeek.",
+        ".keeekoossssssookeeek.",
+        ".kkkkkooossssoookkkkk.",
+        "......kkooooookk......",
+    ]
+    let tailUp = art(head + [
+        ".....kkkkkkkkkkkk.....",
+        "....koowwwwwwwwook.kk.",
+        "....koowwwwwwwwook.ko.",
+        "....kooooooooooookkko.",
+        "....kkkkkkkkkkkkkkkk..",
+    ])
+    let tailDown = art(head + [
+        ".....kkkkkkkkkkkk.....",
+        "....koowwwwwwwwook....",
+        "....koowwwwwwwwookk...",
+        "....kooooooooooookkk..",
+        "....kkkkkkkkkkkkkkkk..",
+    ])
+    func f(_ delay: Double, tailUp up: Bool = true, lift: Int = 0, eyes: Eyes = .open(0), mouth: Mouth = .smile, tongue: Bool = false,
+           tear: Int? = nil, zzz: Int = 0, sweat: Bool = false, food: Int? = nil, thought: Bool = false, shift: Int = 0) -> Frame {
+        frame(delay) { c in
+            let shape = up ? tailUp : tailDown
+            let bw = shape[0].count, bh = shape.count
+            let ox = (size - bw) / 2 + shift, oy = size - bh - lift
+            c.blit(shape, ox, oy, pal)
+            let cx = ox + 11, eyeY = oy + 3
+            let lx = cx - 4, rx = cx + 2
+            drawEyes(c, eyes, lx: lx, rx: rx, y: eyeY, browColor: dark)
+            c.rect(cx - 1, oy + 8, 2, 1, ink)                       // nose
+            drawMouth(c, mouth, cx: cx, y: oy + 9, color: dark)
+            if tongue { c.rect(cx - 1, oy + 10, 2, 2, pink) }
+            drawTear(c, x: lx, y: eyeY + 3, step: tear)
+            if sweat { c.rect(ox + 16, oy, 1, 2, tearBlue) }
+            drawZzz(c, zzz, x: 17, y: oy - 3, color: dark)
+            if let st = food { drawFood(c, .bone, x: cx - 3, y: oy + 9, stage: st) }   // carried in the mouth
+            if thought { drawThought(c, .bone, x: 0, y: 0, dots: [(9, 6)], outline: dark) }
+        }
+    }
+    return PetDef(name: "Dog", states: [
+        "idle": [f(0.5), f(0.5, tailUp: false), f(0.5), f(0.12, eyes: .closed), f(0.5, tailUp: false)],
+        "working": [f(0.2, eyes: .open(-1), mouth: .flat, sweat: true), f(0.2, tailUp: false, mouth: .flat),
+                    f(0.2, eyes: .open(1), mouth: .flat, sweat: true), f(0.2, tailUp: false, mouth: .flat)],
+        "happy": [f(0.1, eyes: .happy, tongue: true), f(0.1, tailUp: false, lift: 3, eyes: .happy, tongue: true),
+                  f(0.15, lift: 5, eyes: .happy, tongue: true), f(0.1, tailUp: false, lift: 3, eyes: .happy, tongue: true),
+                  f(0.3, eyes: .happy, tongue: true)],
+        "sad": [f(0.35, tailUp: false, eyes: .sad, mouth: .frown, tear: 0), f(0.35, tailUp: false, eyes: .sad, mouth: .frown, tear: 1),
+                f(0.35, tailUp: false, eyes: .sad, mouth: .frown, tear: 2), f(0.35, tailUp: false, eyes: .sad, mouth: .frown)],
+        "sleeping": [f(0.5, tailUp: false, eyes: .closed, mouth: .flat, zzz: 1), f(0.5, tailUp: false, eyes: .closed, mouth: .flat, zzz: 2),
+                     f(0.7, tailUp: false, eyes: .closed, mouth: .flat, zzz: 3), f(0.4, tailUp: false, eyes: .closed, mouth: .flat)],
+        "eating": [f(0.25, mouth: .open, food: 0), f(0.25, tailUp: false, mouth: .flat, food: 0),
+                   f(0.25, mouth: .open, food: 1), f(0.25, tailUp: false, mouth: .flat, food: 1),
+                   f(0.3, eyes: .happy, tongue: true, food: 2), f(0.5, tailUp: false, eyes: .happy, tongue: true, food: 2)],
+        "hungry": [f(0.6, tailUp: false, eyes: .sad, mouth: .flat, thought: true), f(0.12, tailUp: false, eyes: .sad, mouth: .flat, thought: true, shift: -1),
+                   f(0.12, tailUp: false, eyes: .sad, mouth: .flat, thought: true, shift: 1), f(0.6, tailUp: false, eyes: .sad, mouth: .flat, thought: true),
+                   f(0.5, tailUp: false, eyes: .closed, mouth: .flat)],
+    ])
+}
+
+// --- Frog -----------------------------------------------------------------
+
+func frog() -> PetDef {
+    let skin = rgb(110, 200, 110), dark = rgb(30, 90, 45), belly = rgb(205, 240, 190)
+    let pal: [Character: Color] = ["k": dark, "g": skin, "b": belly, "w": white]
+    let body = art([
+        "..kkkk......kkkk..",
+        ".kwwwwk....kwwwwk.",
+        ".kwwwwk....kwwwwk.",
+        ".kwwwwkkkkkkwwwwk.",
+        "kgwwwwggggggwwwwgk",
+        "kggggggggggggggggk",
+        "kggggggggggggggggk",
+        "kggggggggggggggggk",
+        "kgggbbbbbbbbbbgggk",
+        "kggbbbbbbbbbbbbggk",
+        ".kgbbbbbbbbbbbbgk.",
+        ".kkkgggggggggggkkk",
+        "kkk..kkkkkkkk..kkk",
+    ])
+    enum FrogEyes { case open(Int), closed, happy, sad }
+    func f(_ delay: Double, lift: Int = 0, eyes: FrogEyes = .open(0), mouth: Mouth = .smile,
+           tear: Int? = nil, zzz: Int = 0, sweat: Bool = false, food: Int? = nil, thought: Bool = false, shift: Int = 0) -> Frame {
+        frame(delay) { c in
+            let bw = body[0].count, bh = body.count
+            let ox = (size - bw) / 2 + shift, oy = size - bh - lift
+            c.blit(body, ox, oy, pal)
+            let cx = ox + 9
+            for ex in [ox + 2, ox + 12] {          // eye whites are 4x3 at rows 1-3
+                switch eyes {
+                case let .open(dx):
+                    c.rect(ex + 1 + dx, oy + 2, 2, 2, ink); c.set(ex + 1 + dx, oy + 2, white)
+                case .closed:
+                    c.rect(ex, oy + 1, 4, 3, skin); c.rect(ex, oy + 2, 4, 1, dark)
+                case .happy:
+                    c.rect(ex, oy + 1, 4, 3, skin)
+                    c.set(ex, oy + 2, dark); c.set(ex + 1, oy + 1, dark); c.set(ex + 2, oy + 1, dark); c.set(ex + 3, oy + 2, dark)
+                case .sad:
+                    c.rect(ex + 1, oy + 3, 2, 2, ink); c.set(ex + 1, oy + 3, white)
+                    c.rect(ex, oy + 1, 4, 1, dark)
+                }
+            }
+            let my = oy + 7
+            switch mouth {
+            case .smile: c.set(cx - 5, my - 1, dark); c.rect(cx - 4, my, 8, 1, dark); c.set(cx + 4, my - 1, dark)
+            case .frown: c.set(cx - 5, my + 1, dark); c.rect(cx - 4, my, 8, 1, dark); c.set(cx + 4, my + 1, dark)
+            case .open: c.rect(cx - 3, my, 6, 2, ink); c.rect(cx - 2, my + 1, 4, 1, pink)
+            case .flat: c.rect(cx - 3, my, 6, 1, dark)
+            case .none: break
+            }
+            c.rect(cx - 6, oy + 5, 2, 1, pink); c.rect(cx + 4, oy + 5, 2, 1, pink)   // cheeks
+            drawTear(c, x: ox + 3, y: oy + 4, step: tear)
+            if sweat { c.rect(ox + bw - 2, oy + 3, 1, 2, tearBlue) }
+            drawZzz(c, zzz, x: 17, y: oy - 3, color: dark)
+            if let st = food { drawFood(c, .fly, x: ox - 2, y: oy + 6, stage: st) }
+            if thought { drawThought(c, .fly, x: 0, y: 0, dots: [(9, 8), (10, 9)], outline: dark) }
+        }
+    }
+    return PetDef(name: "Frog", states: [
+        "idle": [f(1.0), f(0.12, eyes: .closed), f(1.2), f(0.25, eyes: .open(1)), f(0.6)],
+        "working": [f(0.2, eyes: .open(-1), mouth: .flat, sweat: true), f(0.2, mouth: .flat),
+                    f(0.2, eyes: .open(1), mouth: .flat, sweat: true), f(0.2, mouth: .flat)],
+        "happy": [f(0.1, eyes: .happy, mouth: .open), f(0.1, lift: 4, eyes: .happy, mouth: .open),
+                  f(0.15, lift: 7, eyes: .happy, mouth: .open), f(0.1, lift: 4, eyes: .happy, mouth: .open),
+                  f(0.3, eyes: .happy, mouth: .smile)],
+        "sad": [f(0.35, eyes: .sad, mouth: .frown, tear: 0), f(0.35, eyes: .sad, mouth: .frown, tear: 1),
+                f(0.35, eyes: .sad, mouth: .frown, tear: 2), f(0.35, eyes: .sad, mouth: .frown)],
+        "sleeping": [f(0.5, eyes: .closed, mouth: .flat, zzz: 1), f(0.5, eyes: .closed, mouth: .flat, zzz: 2),
+                     f(0.7, eyes: .closed, mouth: .flat, zzz: 3), f(0.4, eyes: .closed, mouth: .flat)],
+        "eating": [f(0.25, mouth: .open, food: 0), f(0.25, mouth: .flat, food: 0),
+                   f(0.25, mouth: .open, food: 1), f(0.25, mouth: .flat, food: 1),
+                   f(0.3, eyes: .happy, mouth: .smile, food: 2), f(0.5, eyes: .happy, mouth: .smile, food: 2)],
+        "hungry": [f(0.6, eyes: .sad, mouth: .flat, thought: true), f(0.12, eyes: .sad, mouth: .flat, thought: true, shift: -1),
+                   f(0.12, eyes: .sad, mouth: .flat, thought: true, shift: 1), f(0.6, eyes: .sad, mouth: .flat, thought: true),
+                   f(0.5, eyes: .closed, mouth: .flat)],
+    ])
+}
+
+// --- Penguin --------------------------------------------------------------
+
+func penguin() -> PetDef {
+    let coat = rgb(51, 65, 85), dark = rgb(15, 23, 42), beak = rgb(249, 115, 22)
+    let pal: [Character: Color] = ["k": dark, "b": coat, "w": white, "o": beak]
+    let body = art([
+        ".....kkkkkk.....",
+        "...kkbbbbbbkk...",
+        "..kbbbbbbbbbbk..",
+        ".kbbbbbbbbbbbbk.",
+        ".kbbwwwwwwwwbbk.",
+        ".kbbwwwwwwwwbbk.",
+        ".kbbwwwwwwwwbbk.",
+        "kbbbwwwwwwwwbbbk",
+        "kbbbwwwwwwwwbbbk",
+        "kbbbwwwwwwwwbbbk",
+        "kbbbwwwwwwwwbbbk",
+        "kbbbwwwwwwwwbbbk",
+        "kbbbwwwwwwwwbbbk",
+        ".kbbwwwwwwwwbbk.",
+        ".kbbbwwwwwwbbbk.",
+        "..kkbbbbbbbbkk..",
+        "...oo.kkkk.oo...",
+    ])
+    let flipperDown = ["kb", "kb", "kb", "kb", "kk"]
+    let flipperUp = [".k", "kb", "kb", "kb", "kk"]
+    func f(_ delay: Double, flap: Bool = false, lift: Int = 0, eyes: Eyes = .open(0), mouth: Mouth = .none,
+           tear: Int? = nil, zzz: Int = 0, sweat: Bool = false, food: Int? = nil, thought: Bool = false, shift: Int = 0) -> Frame {
+        frame(delay) { c in
+            let bw = body[0].count, bh = body.count
+            let ox = (size - bw) / 2 + shift, oy = size - bh - lift
+            c.blit(body, ox, oy, pal)
+            let wing = flap ? flipperUp : flipperDown
+            let wy = flap ? oy + 4 : oy + 7
+            c.blit(wing, ox - 1, wy, pal)
+            c.blit(wing.map { String($0.reversed()) }, ox + bw - 1, wy, pal)
+            let cx = ox + 8, eyeY = oy + 5
+            let lx = cx - 4, rx = cx + 2
+            drawEyes(c, eyes, lx: lx, rx: rx, y: eyeY, browColor: dark)
+            c.rect(cx - 1, eyeY + 3, 2, 1, beak); c.rect(cx - 1, eyeY + 4, 2, 1, mouth == .frown ? dark : beak)
+            if mouth == .open { c.rect(cx - 1, eyeY + 4, 2, 1, ink) }
+            drawTear(c, x: lx, y: eyeY + 3, step: tear)
+            if sweat { c.rect(ox + bw - 3, oy + 2, 1, 2, tearBlue) }
+            drawZzz(c, zzz, x: 17, y: oy - 3, color: dark)
+            if let st = food { drawFood(c, .fish, x: ox - 4, y: oy + 9, stage: st) }
+            if thought { drawThought(c, .fish, x: 0, y: 0, dots: [(8, 7)], outline: dark) }
+        }
+    }
+    return PetDef(name: "Penguin", states: [
+        "idle": [f(0.8), f(0.8, lift: 1), f(0.4), f(0.12, eyes: .closed), f(0.6, lift: 1)],
+        "working": [f(0.2, eyes: .open(-1), sweat: true, shift: -1), f(0.2, lift: 1), f(0.2, eyes: .open(1), sweat: true, shift: 1), f(0.2, lift: 1)],
+        "happy": [f(0.1, flap: true, eyes: .happy, mouth: .open), f(0.1, lift: 3, eyes: .happy, mouth: .open),
+                  f(0.15, flap: true, lift: 5, eyes: .happy, mouth: .open), f(0.1, lift: 3, eyes: .happy, mouth: .open),
+                  f(0.3, flap: true, eyes: .happy, mouth: .open)],
+        "sad": [f(0.35, eyes: .sad, mouth: .frown, tear: 0), f(0.35, eyes: .sad, mouth: .frown, tear: 1),
+                f(0.35, eyes: .sad, mouth: .frown, tear: 2), f(0.35, eyes: .sad, mouth: .frown)],
+        "sleeping": [f(0.5, eyes: .closed, zzz: 1), f(0.5, eyes: .closed, zzz: 2), f(0.7, eyes: .closed, zzz: 3), f(0.4, eyes: .closed)],
+        "eating": [f(0.25, mouth: .open, food: 0), f(0.25, lift: 1, food: 0),
+                   f(0.25, mouth: .open, food: 1), f(0.25, lift: 1, food: 1),
+                   f(0.3, flap: true, eyes: .happy, mouth: .open, food: 2), f(0.5, eyes: .happy, food: 2)],
+        "hungry": [f(0.6, eyes: .sad, mouth: .frown, thought: true), f(0.12, eyes: .sad, mouth: .frown, thought: true, shift: -1),
+                   f(0.12, eyes: .sad, mouth: .frown, thought: true, shift: 1), f(0.6, eyes: .sad, mouth: .frown, thought: true),
+                   f(0.5, eyes: .closed)],
+    ])
+}
+
 // MARK: - Output
 
 let stateOrder = ["idle", "working", "happy", "sad", "sleeping", "eating", "hungry"]
-let pets = [blob(), cat(), ghost(), robot(), chick()]
+let pets = [blob(), cat(), ghost(), robot(), chick(), dog(), frog(), penguin()]
 
 func writeGIF(_ frames: [Frame], to url: URL) {
     guard let dest = CGImageDestinationCreateWithURL(url as CFURL, "com.compuserve.gif" as CFString, frames.count, nil) else {
