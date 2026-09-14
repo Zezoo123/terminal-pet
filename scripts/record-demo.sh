@@ -11,14 +11,11 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-convert_gif() {
+convert_gif() {   # .mov -> .gif with AVFoundation + ImageIO, no external tools needed
     local src=$1 out=$2
-    command -v ffmpeg >/dev/null || { echo "ffmpeg is needed for the GIF conversion: brew install ffmpeg" >&2; exit 1 }
-    mkdir -p "$(dirname "$out")"
-    ffmpeg -loglevel error -y -i "$src" \
-        -vf "fps=12,scale=820:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=128:stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle" \
-        -loop 0 "$out"
-    echo "wrote $out ($(du -h "$out" | cut -f1))"
+    mkdir -p .build "$(dirname "$out")"
+    [[ .build/mov-to-gif -nt scripts/mov-to-gif.swift ]] || swiftc -O -o .build/mov-to-gif scripts/mov-to-gif.swift
+    .build/mov-to-gif "$src" "$out" "${DEMO_FPS:-12}" "${DEMO_WIDTH:-820}"
 }
 
 if [[ "${1:-}" == "--from" ]]; then
@@ -50,7 +47,7 @@ trap restore EXIT
 osascript >/dev/null <<APPLESCRIPT
 tell application "Terminal"
     activate
-    do script "clear"
+    do script "cd $(pwd) && clear"
     delay 0.5
     set bounds of front window to {$X, $Y, $((X + W)), $((Y + H))}
 end tell
@@ -69,7 +66,7 @@ screencapture -x -V "$SECS" -R "$X,$Y,$W,$H" "$MOV" &
 REC=$!
 sleep 1.5
 type_cmd 'echo "hello, world"' 2
-type_cmd 'git status --short | head -3' 2.5
+type_cmd 'ls' 2.5
 type_cmd 'cat does-not-exist.txt' 3
 type_cmd 'pet feed' 3.5
 type_cmd 'pet say "star me on github"' 3
