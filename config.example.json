@@ -1,0 +1,12 @@
+{
+  "pet": "blob",
+  "scale": 3,
+  "anchor": "top-right",
+  "offsetX": 24,
+  "offsetY": 0,
+  "idleAfter": 90,
+  "reactionSeconds": 2.5,
+  "pollHz": 30,
+  "smooth": false,
+  "terminals": ["Terminal", "iTerm2", "kitty", "Alacritty", "WezTerm", "Ghostty", "Warp", "Hyper", "Tabby", "Rio"]
+}
