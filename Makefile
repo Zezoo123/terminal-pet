@@ -4,7 +4,7 @@ SHARE   = $(PREFIX)/share/terminal-pet
 CONFIG  = $(HOME)/.config/terminal-pet
 AGENT   = $(HOME)/Library/LaunchAgents/com.terminal-pet.plist
 
-.PHONY: build run release install uninstall pets demo test launchd unlaunchd clean
+.PHONY: build run release install uninstall pets demo test traffic launchd unlaunchd clean
 
 build:
 	swift build
@@ -47,6 +47,10 @@ test: build
 ## Record docs/demo.gif from a real Terminal window (asks for Screen Recording permission once).
 demo:
 	scripts/record-demo.sh docs/demo.gif
+
+## Who's looking: GitHub views, referrers and stars for the last 14 days (owner only).
+traffic:
+	scripts/traffic.sh
 
 ## Start the pet at login via launchd.
 launchd:
