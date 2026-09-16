@@ -7,6 +7,7 @@
 #   scripts/record-demo.sh --from clip.mov [out]  only convert a recording you made with QuickTime/Kap
 #
 # Env: DEMO_SECONDS (default 16), DEMO_PET (temporarily switch pet, restored afterwards),
+#      DEMO_APP Terminal (default) or iTerm2,
 #      DEMO_BOUNDS "x,y,w,h" of the window in screen points (default 200,140,820,520).
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -25,6 +26,7 @@ fi
 
 OUT=${1:-docs/demo.gif}
 SECS=${DEMO_SECONDS:-16}
+APP=${DEMO_APP:-Terminal}
 BOUNDS=${DEMO_BOUNDS:-200,140,820,520}
 PET_BIN=$(command -v terminal-pet || echo "$HOME/.local/bin/terminal-pet")
 [[ -x "$PET_BIN" ]] || { echo "terminal-pet is not installed (make install)" >&2; exit 1 }
@@ -43,8 +45,24 @@ fi
 restore() { [[ -n "$ORIGINAL_PET" ]] && "$PET_BIN" --pet "$ORIGINAL_PET" >/dev/null 2>&1 || true }
 trap restore EXIT
 
-# 2. Open a fresh Terminal window at a known place.
-osascript >/dev/null <<APPLESCRIPT
+# 2. Open a fresh terminal window at a known place.
+if [[ "$APP" == "iTerm2" || "$APP" == "iTerm" ]]; then
+    osascript >/dev/null <<APPLESCRIPT
+tell application "iTerm2"
+    activate
+    set w to (create window with default profile)
+    delay 0.5
+    set bounds of w to {$X, $Y, $((X + W)), $((Y + H))}
+    tell current session of w to write text "cd $(pwd) && clear"
+end tell
+APPLESCRIPT
+    type_cmd() {
+        local cmd=${1//\\/\\\\}; cmd=${cmd//\"/\\\"}
+        osascript -e "tell application \"iTerm2\" to tell current session of current window to write text \"$cmd\"" >/dev/null
+        sleep "${2:-2}"
+    }
+else
+    osascript >/dev/null <<APPLESCRIPT
 tell application "Terminal"
     activate
     do script "cd $(pwd) && clear"
@@ -52,13 +70,13 @@ tell application "Terminal"
     set bounds of front window to {$X, $Y, $((X + W)), $((Y + H))}
 end tell
 APPLESCRIPT
+    type_cmd() {   # runs a command in the demo window so the hooks fire and the text shows up
+        local cmd=${1//\\/\\\\}; cmd=${cmd//\"/\\\"}
+        osascript -e "tell application \"Terminal\" to do script \"$cmd\" in front window" >/dev/null
+        sleep "${2:-2}"
+    }
+fi
 sleep 1.5
-
-type_cmd() {   # runs a command in the demo window so the hooks fire and the text shows up
-    local cmd=${1//\\/\\\\}; cmd=${cmd//\"/\\\"}
-    osascript -e "tell application \"Terminal\" to do script \"$cmd\" in front window" >/dev/null
-    sleep "${2:-2}"
-}
 
 # 3. Record the window region while a scripted session plays out.
 echo "recording ${SECS}s ..."
@@ -72,7 +90,7 @@ type_cmd 'pet feed' 3.5
 type_cmd 'pet say "star me on github"' 3
 wait $REC || true
 
-osascript -e 'tell application "Terminal" to do script "exit" in front window' >/dev/null 2>&1 || true
+type_cmd 'exit' 0
 
 if [[ ! -s "$MOV" ]]; then
     cat >&2 <<MSG
