@@ -112,6 +112,10 @@ Everything is kept in `~/.config/terminal-pet/stats.json`. Delete it to start ov
 
 ## It knows what you're running
 
+<p align="center">
+  <img src="docs/demo-git.gif" alt="git push: a parcel floats up, then confetti. make check fails: tears. rm -rf: sweating. git push --force: confetti after a scare." width="820">
+</p>
+
 The pet reads the command line and reacts to the ones that matter:
 
 | you run | it does |
