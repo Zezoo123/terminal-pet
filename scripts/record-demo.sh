@@ -8,6 +8,7 @@
 #
 # Env: DEMO_SECONDS (default 16), DEMO_PET (temporarily switch pet, restored afterwards),
 #      DEMO_APP Terminal (default) or iTerm2,
+#      DEMO_CMDS newline-separated "command|seconds" lines to run instead of the default session,
 #      DEMO_BOUNDS "x,y,w,h" of the window in screen points (default 200,140,820,520).
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -44,9 +45,11 @@ if [[ -n "${DEMO_PET:-}" ]]; then
 fi
 restore() { [[ -n "$ORIGINAL_PET" ]] && "$PET_BIN" --pet "$ORIGINAL_PET" >/dev/null 2>&1 || true }
 trap restore EXIT
+"$PET_BIN" feed >/dev/null && sleep 3.5   # a hungry pet would show its hungry pose between commands
 
 # 2. Open a fresh terminal window at a known place.
 if [[ "$APP" == "iTerm2" || "$APP" == "iTerm" ]]; then
+    open -a iTerm && sleep 2      # its AppleScript terms only resolve once it is running
     osascript >/dev/null <<APPLESCRIPT
 tell application "iTerm2"
     activate
@@ -83,11 +86,17 @@ echo "recording ${SECS}s ..."
 screencapture -x -V "$SECS" -R "$X,$Y,$W,$H" "$MOV" &
 REC=$!
 sleep 1.5
-type_cmd 'echo "hello, world"' 2
-type_cmd 'ls' 2.5
-type_cmd 'cat does-not-exist.txt' 3
-type_cmd 'pet feed' 3.5
-type_cmd 'pet say "star me on github"' 3
+if [[ -n "${DEMO_CMDS:-}" ]]; then
+    while IFS='|' read -r cmd secs; do
+        [[ -n "$cmd" ]] && type_cmd "$cmd" "${secs:-2.5}"
+    done <<< "$DEMO_CMDS"
+else
+    type_cmd 'echo "hello, world"' 2
+    type_cmd 'ls' 2.5
+    type_cmd 'cat does-not-exist.txt' 3
+    type_cmd 'pet feed' 3.5
+    type_cmd 'pet say "star me on github"' 3
+fi
 wait $REC || true
 
 type_cmd 'exit' 0
