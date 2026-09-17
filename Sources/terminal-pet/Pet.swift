@@ -1,13 +1,14 @@
 import Foundation
 
 enum PetState: String, CaseIterable {
-    case idle, working, happy, sad, sleeping, eating, hungry
+    case idle, working, happy, sad, sleeping, eating, hungry, celebrate, pushing, scared
 
     /// What to show when a pet has no animation for a state.
     var fallback: PetState? {
         switch self {
         case .idle: return nil
-        case .eating: return .happy
+        case .eating, .celebrate: return .happy
+        case .pushing, .scared: return .working
         default: return .idle
         }
     }

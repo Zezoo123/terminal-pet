@@ -11,6 +11,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private(set) var state: PetState = .idle
     private var lastActivity = Date()
+    private var reactions: [CompiledReaction] = []
+    private var commandRunning = false
+    private var currentReaction: Reaction?
     private var lastHungerNag = Date.distantPast
     /// After `state <name>` is forced from the shell, automatic idle/hungry/sleep transitions pause until this time.
     private var manualUntil = Date.distantPast
@@ -29,6 +32,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.pet = pet
         self.tracker = TerminalTracker(terminals: config.terminals)
         super.init()
+        reactions = Reactions.compile(user: config.reactions)
     }
 
     private func log(_ msg: @autoclosure () -> String) {
@@ -128,10 +132,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         reactionTimer?.invalidate()
         switch kind {
         case "preexec":
-            setState(.working)
+            commandRunning = true
+            currentReaction = reactions.first { $0.matches(arg) }?.reaction
+            if let start = currentReaction?.start {
+                setState(PetState(rawValue: start.state ?? "") ?? .working)
+                if let text = start.say { say(text, for: 60) }   // stays up until the command ends
+            } else {
+                setState(.working)
+            }
         case "precmd":
             let status = Int(arg) ?? 0
-            if state == .working {
+            if commandRunning {
+                commandRunning = false
                 commandFinished(status: status)
             } else if state != .idle {
                 // Plain Enter on an empty prompt: wake up, but don't re-celebrate an old status.
@@ -171,23 +183,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func commandFinished(status: Int) {
         stats.commandsRun += 1
+        let step = status == 0 ? currentReaction?.success : currentReaction?.failure
+        currentReaction = nil
+        view.bubbleText = nil
         if status == 0 {
             stats.streak += 1
             stats.bestStreak = max(stats.bestStreak, stats.streak)
-            react(.happy)
+            react(PetState(rawValue: step?.state ?? "") ?? .happy)
             gainXP(1)
             if [5, 10, 25, 50, 100, 250, 500, 1000].contains(stats.streak) {
                 say("\(stats.streak) in a row!")
             } else if stats.streak == stats.bestStreak, stats.streak > 10, stats.streak % 50 == 0 {
                 say("new record!")
+            } else if let text = step?.say {
+                say(text)
             }
         } else {
             stats.commandsFailed += 1
             let lost = stats.streak
             stats.streak = 0
-            react(.sad)
+            react(PetState(rawValue: step?.state ?? "") ?? .sad)
             if lost >= 5 {
                 say("streak of \(lost) lost")
+            } else if let text = step?.say {
+                say(text)
             } else if Int.random(in: 0..<4) == 0 {
                 say(pick(["oops", "hmm", "exit \(status)", "try again"]))
             }

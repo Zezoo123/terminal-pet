@@ -25,6 +25,8 @@ struct Config: Codable {
     var smooth: Bool = false
     /// App names or bundle identifiers that count as a terminal.
     var terminals: [String] = Config.defaultTerminals
+    /// Your own command reactions, checked before the built-in ones (see Reactions.swift).
+    var reactions: [Reaction] = []
 
     /// App names (matched against the running app's localized name) and bundle identifiers, either works.
     static let defaultTerminals = [
@@ -46,7 +48,7 @@ struct Config: Codable {
     static var configFile: URL { configDir.appendingPathComponent("config.json") }
 
     enum CodingKeys: String, CodingKey {
-        case pet, name, scale, anchor, offsetX, offsetY, idleAfter, reactionSeconds, pollHz, smooth, terminals
+        case pet, name, scale, anchor, offsetX, offsetY, idleAfter, reactionSeconds, pollHz, smooth, terminals, reactions
     }
 
     init() {}
@@ -64,6 +66,7 @@ struct Config: Codable {
         pollHz = try c.decodeIfPresent(Double.self, forKey: .pollHz) ?? pollHz
         smooth = try c.decodeIfPresent(Bool.self, forKey: .smooth) ?? smooth
         terminals = try c.decodeIfPresent([String].self, forKey: .terminals) ?? terminals
+        reactions = try c.decodeIfPresent([Reaction].self, forKey: .reactions) ?? reactions
     }
 
     static let anchors = ["top-right", "top-left", "inside-top-right", "inside-top-left",
