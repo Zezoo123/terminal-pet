@@ -31,6 +31,11 @@ final class Canvas {
         let i = (y * w + x) * 4
         px[i] = c.r; px[i + 1] = c.g; px[i + 2] = c.b; px[i + 3] = c.a
     }
+    /// Like set, but never paints over the sprite (for effects that go behind the pet).
+    func setBehind(_ x: Int, _ y: Int, _ c: Color) {
+        guard x >= 0, x < w, y >= 0, y < h, px[(y * w + x) * 4 + 3] == 0 else { return }
+        set(x, y, c)
+    }
     func rect(_ x: Int, _ y: Int, _ rw: Int, _ rh: Int, _ c: Color) {
         for dy in 0..<rh { for dx in 0..<rw { set(x + dx, y + dy, c) } }
     }
@@ -39,6 +44,24 @@ final class Canvas {
             for (dx, ch) in row.enumerated() { if let c = pal[ch] { set(ox + dx, oy + dy, c) } }
         }
     }
+    /// Rebuilds a canvas from a rendered frame (used to derive states by overlaying effects).
+    convenience init(from image: CGImage, shiftX: Int = 0, shiftY: Int = 0) {
+        self.init(w: image.width, h: image.height)
+        let ctx = CGContext(data: nil, width: w, height: h, bitsPerComponent: 8, bytesPerRow: w * 4,
+                            space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+        ctx.draw(image, in: CGRect(x: shiftX, y: -shiftY, width: w, height: h))
+        let data = ctx.data!.assumingMemoryBound(to: UInt8.self)
+        for i in stride(from: 0, to: w * h * 4, by: 4) {
+            let a = Int(data[i + 3])
+            if a == 0 { continue }
+            // un-premultiply; sprites are fully opaque or fully transparent anyway
+            px[i] = UInt8(min(255, Int(data[i]) * 255 / a))
+            px[i + 1] = UInt8(min(255, Int(data[i + 1]) * 255 / a))
+            px[i + 2] = UInt8(min(255, Int(data[i + 2]) * 255 / a))
+            px[i + 3] = UInt8(a)
+        }
+    }
+
     func image() -> CGImage {
         let provider = CGDataProvider(data: Data(px) as CFData)!
         return CGImage(
@@ -781,10 +804,58 @@ func penguin() -> PetDef {
     ])
 }
 
+// MARK: - Derived states (shared effects layered on each pet's own poses)
+
+let confettiColors = [rgb(248, 113, 113), rgb(250, 204, 21), rgb(74, 222, 128), rgb(96, 165, 250), rgb(244, 114, 182), rgb(167, 139, 250)]
+
+/// Confetti falling through the empty space above and beside the pet; `step` scrolls it.
+func drawConfetti(_ c: Canvas, step: Int) {
+    let spots = [(2, 1), (6, 4), (10, 0), (14, 3), (18, 1), (21, 5), (4, 7), (12, 6), (20, 9), (8, 10), (16, 8), (1, 12), (22, 13)]
+    for (i, (x, y)) in spots.enumerated() {
+        let yy = (y + step * 2 + i) % 16
+        let color = confettiColors[(i + step) % confettiColors.count]
+        c.setBehind(x, yy, color)
+        if i % 3 == 0 { c.setBehind(x + 1, yy, color) }   // some pieces are 2 wide
+    }
+}
+
+/// A little parcel with an up arrow rising along the right edge.
+func drawUpload(_ c: Canvas, step: Int) {
+    let box = rgb(217, 160, 91), tape = rgb(250, 232, 200), arrow = rgb(96, 165, 250)
+    let y = 15 - step * 4
+    c.blit(["bbb", "btb", "bbb"], 19, y, ["b": box, "t": tape])
+    c.blit(["..a..", ".aaa.", "a.a.a", "..a..", "..a.."], 18, y - 6, ["a": arrow])
+}
+
+/// Exclamation mark above the head plus two flying sweat drops.
+func drawAlarm(_ c: Canvas, step: Int) {
+    let red = rgb(248, 113, 113)
+    c.rect(11, 0, 2, 4, red); c.rect(11, 5, 2, 1, red)
+    let dx = step % 2
+    c.rect(2 - dx, 6, 1, 2, tearBlue); c.rect(21 + dx, 7, 1, 2, tearBlue)
+}
+
+func derived(from frames: [Frame], _ draw: (Canvas, Int) -> Void, shiftX: (Int) -> Int = { _ in 0 }) -> [Frame] {
+    frames.enumerated().map { i, f in
+        let c = Canvas(from: f.image, shiftX: shiftX(i))
+        draw(c, i)
+        return Frame(image: c.image(), delay: f.delay)
+    }
+}
+
+func withDerivedStates(_ pet: PetDef) -> PetDef {
+    var states = pet.states
+    states["celebrate"] = derived(from: pet.states["happy"]!) { c, i in drawConfetti(c, step: i) }
+    states["pushing"] = derived(from: pet.states["working"]!) { c, i in drawUpload(c, step: i) }
+    states["scared"] = derived(from: pet.states["idle"]!.prefix(4).map { Frame(image: $0.image, delay: 0.12) },
+                               { c, i in drawAlarm(c, step: i) }, shiftX: { [0, -1, 0, 1][$0 % 4] })
+    return PetDef(name: pet.name, states: states)
+}
+
 // MARK: - Output
 
-let stateOrder = ["idle", "working", "happy", "sad", "sleeping", "eating", "hungry"]
-let pets = [blob(), cat(), ghost(), robot(), chick(), dog(), frog(), penguin()]
+let stateOrder = ["idle", "working", "happy", "sad", "sleeping", "eating", "hungry", "celebrate", "pushing", "scared"]
+let pets = [blob(), cat(), ghost(), robot(), chick(), dog(), frog(), penguin()].map(withDerivedStates)
 
 func writeGIF(_ frames: [Frame], to url: URL) {
     guard let dest = CGImageDestinationCreateWithURL(url as CFURL, "com.compuserve.gif" as CFString, frames.count, nil) else {

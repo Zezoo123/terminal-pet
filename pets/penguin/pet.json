@@ -2,11 +2,14 @@
   "author" : "terminal-pet",
   "name" : "Penguin",
   "states" : {
+    "celebrate" : "celebrate.gif",
     "eating" : "eating.gif",
     "happy" : "happy.gif",
     "hungry" : "hungry.gif",
     "idle" : "idle.gif",
+    "pushing" : "pushing.gif",
     "sad" : "sad.gif",
+    "scared" : "scared.gif",
     "sleeping" : "sleeping.gif",
     "working" : "working.gif"
   }
