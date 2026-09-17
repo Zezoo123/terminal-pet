@@ -66,7 +66,7 @@ _terminal_pet_call() {
 #   pet say hello       speech bubble;  pet name Bob   give it a name
 #   pet stats           level, xp, hunger, streaks, age
 #   pet ghost           switch to another pet (name, directory, or .gif); saved to config
-#   pet sad             force a state: idle | working | happy | sad | sleeping | eating | hungry
+#   pet sad             force a state: idle | working | happy | sad | sleeping | eating | hungry | celebrate | pushing | scared
 #   pet scale 4         resize;  pet anchor inside-bottom-left   move
 #   pet list            list available pets;  pet status;  pet quit
 pet() {
@@ -74,7 +74,7 @@ pet() {
         poke|feed|quit|status) _terminal_pet_call "$1" ;;
         stats) command terminal-pet stats 2>/dev/null || _terminal_pet_call stats ;;
         say|name) _terminal_pet_call "$1" "${@:2}" ;;
-        idle|working|happy|sad|sleeping|eating|hungry) _terminal_pet_call "state $1" ;;
+        idle|working|happy|sad|sleeping|eating|hungry|celebrate|pushing|scared) _terminal_pet_call "state $1" ;;
         scale|anchor) _terminal_pet_call "$1" "$2" ;;
         list|pets) command terminal-pet pets 2>/dev/null || print -u2 "terminal-pet is not on your PATH" ;;
         help|-h|--help) command terminal-pet --help 2>/dev/null || print -u2 "terminal-pet is not on your PATH" ;;

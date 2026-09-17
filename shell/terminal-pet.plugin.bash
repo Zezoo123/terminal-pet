@@ -74,7 +74,7 @@ pet() {
     case "${1:-poke}" in
         poke|feed|quit|status|stats) "$TERMINAL_PET_BIN" "$1" ;;
         say|name) "$TERMINAL_PET_BIN" "$1" "${@:2}" ;;
-        idle|working|happy|sad|sleeping|eating|hungry) "$TERMINAL_PET_BIN" send "state $1" ;;
+        idle|working|happy|sad|sleeping|eating|hungry|celebrate|pushing|scared) "$TERMINAL_PET_BIN" send "state $1" ;;
         scale|anchor) "$TERMINAL_PET_BIN" "--$1" "$2" ;;
         list|pets) "$TERMINAL_PET_BIN" pets ;;
         help|-h|--help) "$TERMINAL_PET_BIN" --help ;;

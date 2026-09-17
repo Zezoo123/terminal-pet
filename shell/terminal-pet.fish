@@ -41,7 +41,7 @@ if status is-interactive; and not set -q TERMINAL_PET_DISABLE
                 command $TERMINAL_PET_BIN $cmd
             case say name
                 command $TERMINAL_PET_BIN $cmd $argv[2..]
-            case idle working happy sad sleeping eating hungry
+            case idle working happy sad sleeping eating hungry celebrate pushing scared
                 command $TERMINAL_PET_BIN send state $cmd
             case scale anchor
                 command $TERMINAL_PET_BIN --$cmd $argv[2]

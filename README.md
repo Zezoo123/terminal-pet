@@ -11,7 +11,7 @@ A little animated Tamagotchi-like companion that lives on top of your terminal w
 </p>
 
 <p align="center">
-  <img src="docs/showcase.gif" alt="The bundled pets (blob, cat, ghost, robot, chick) cycling through idle, working, happy, sad, sleeping, eating and hungry" width="520">
+  <img src="docs/showcase.gif" alt="The bundled pets (blob, cat, ghost, robot, chick) cycling through their states" width="520">
 </p>
 
 - Sits in the corner of whichever terminal window is in front (or perched on its title bar, if you prefer), and follows it when you move or resize it.
@@ -91,7 +91,7 @@ pet stats      # level, xp, hunger, streaks, age
 pet say hi     # speech bubble (try it at the end of a long script)
 pet name Bob   # give it a name
 pet ghost      # switch to another pet (any name from `pet list`, a folder, or a .gif)
-pet sad        # force a state: idle | working | happy | sad | sleeping | eating | hungry
+pet sad        # force a state: idle | working | happy | sad | sleeping | eating | hungry | celebrate | pushing | scared
 pet scale 4    # resize
 pet anchor inside-bottom-left
 pet list       # what's installed
@@ -109,6 +109,38 @@ pet quit
 | **Speech** | Reacts with short bubbles. `pet say "tests passed"` from any script, or `terminal-pet say ...` from bash, Makefiles, CI. |
 
 Everything is kept in `~/.config/terminal-pet/stats.json`. Delete it to start over.
+
+## It knows what you're running
+
+The pet reads the command line and reacts to the ones that matter:
+
+| you run | it does |
+|---------|---------|
+| `git push` | a parcel floats up while it pushes, confetti when it lands, "push rejected" when it doesn't |
+| `git push --force` | gets scared first |
+| `git merge`, `gh pr merge` | confetti on "merged!", sulks on "conflicts..." |
+| `git rebase` | nervous the whole time |
+| `gh pr create`, `gh release create`, `git clone` | confetti |
+| `make`, `cargo build`, `swift build`, `npm run build` | "building..." then "build ok!" or "build failed" |
+| `pytest`, `npm test`, `cargo test`, `go test`, `jest` | "testing..." then "tests pass!" or "tests failed" |
+| `brew install`, `npm install`, `pip install`, `cargo add` | "installing..." then "installed" |
+| `rm -rf`, `sudo`, `terraform apply` | wide-eyed and sweating until it's over |
+
+The full list is in [Reactions.swift](Sources/terminal-pet/Reactions.swift). Add your own in the config; they're checked before the built-in ones, first match wins, patterns are case-insensitive regular expressions matched against the command line:
+
+```json
+{
+  "reactions": [
+    { "match": "^deploy\\b",
+      "start":   { "state": "scared",    "say": "deploying..." },
+      "success": { "state": "celebrate", "say": "live!" },
+      "failure": { "state": "sad",       "say": "rollback?" } },
+    { "match": "^make coffee", "success": { "say": "finally" } }
+  ]
+}
+```
+
+Each of `start`, `success`, `failure` is optional, and so are `state` and `say` inside them. States: `idle`, `working`, `happy`, `sad`, `sleeping`, `eating`, `hungry`, `celebrate`, `pushing`, `scared`.
 
 ## Changing things on the fly
 
@@ -160,12 +192,13 @@ Pick one with `"pet": "cat"` in the config or `terminal-pet --pet cat`. `termina
 | `pollHz`          | `30`          | how often it checks where the terminal window is |
 | `smooth`          | `false`       | bilinear scaling instead of crisp pixels (for photo-like GIFs) |
 | `terminals`       | see example   | app names or bundle IDs treated as terminals (Terminal, iTerm2, kitty, Alacritty, WezTerm, Ghostty, Warp, Hyper, Tabby, Rio by default) |
+| `reactions`       | `[]`          | your own command reactions, see below |
 
 Flags override the file for one run: `terminal-pet --pet ~/Downloads/cat.gif --scale 1 --anchor top-right`.
 
 ## Making your own pet
 
-A pet is a folder with one animated image per state: `idle`, `working`, `happy`, `sad`, `sleeping`, `eating`, `hungry`. Missing states fall back sensibly (`eating` to `happy`, everything else to `idle`), so a single `idle.gif` is enough.
+A pet is a folder with one animated image per state: `idle`, `working`, `happy`, `sad`, `sleeping`, `eating`, `hungry`, `celebrate`, `pushing`, `scared`. Missing states fall back sensibly (`eating` and `celebrate` to `happy`, `pushing` and `scared` to `working`, everything else to `idle`), so a single `idle.gif` is enough.
 
 ```
 ~/.config/terminal-pet/pets/cat/
